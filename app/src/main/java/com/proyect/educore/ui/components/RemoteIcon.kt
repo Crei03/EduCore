@@ -1,0 +1,67 @@
+package com.proyect.educore.ui.components
+
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
+
+enum class RemoteIconSpec(
+    internal val path: String,
+    val contentDescription: String
+) {
+    Home("home", "Icono inicio"),
+    Person("person", "Icono usuario"),
+    PersonAdd("person_add", "Icono crear usuario"),
+    Login("login", "Icono iniciar sesión"),
+    Logout("logout", "Icono cerrar sesión"),
+    Email("mail", "Icono correo"),
+    Lock("lock", "Icono candado"),
+    Visibility("visibility", "Icono mostrar"),
+    VisibilityOff("visibility_off", "Icono ocultar"),
+    ArrowForward("arrow_forward", "Icono siguiente");
+
+    val url: String = "https://fonts.gstatic.com/s/i/materialiconsoutlined/$path/v1/24px.svg"
+}
+
+@Composable
+fun RemoteIcon(
+    iconSpec: RemoteIconSpec,
+    modifier: Modifier = Modifier,
+    tint: Color? = MaterialTheme.colorScheme.onSurface,
+    size: Dp = 24.dp
+) {
+    val context = LocalContext.current
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
+
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(iconSpec.url)
+            .crossfade(true)
+            .build(),
+        contentDescription = iconSpec.contentDescription,
+        modifier = modifier
+            .size(size)
+            .clip(MaterialTheme.shapes.extraSmall),
+        imageLoader = imageLoader,
+        colorFilter = tint?.let { ColorFilter.tint(it) },
+        contentScale = ContentScale.Fit
+    )
+}
