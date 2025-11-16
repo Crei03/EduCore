@@ -6,9 +6,9 @@ declare(strict_types=1);
  * Ajusta estos valores según tu entorno local.
  */
 const DB_HOST = "localhost";
-const DB_USER = "ds6";
-const DB_PASSWORD = "123";
-const DB_NAME = "turno_academia";
+const DB_USER = "root";
+const DB_PASSWORD = "";
+const DB_NAME = "turnos_academia";
 
 /**
  * Crea y retorna una conexión nueva a MySQL.
