@@ -16,6 +16,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "LOGIN_URL",
+            "\"http://10.0.2.2:80/EduCore/backend/Auth.php?action=login\""
+        )
+        buildConfigField(
+            "String",
+            "REGISTER_URL",
+            "\"http://10.0.2.2:80/EduCore/backend/Auth.php?action=register\""
+        )
     }
 
     buildTypes {
@@ -35,6 +45,7 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -53,6 +64,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
+    implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

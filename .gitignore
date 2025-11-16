@@ -6,6 +6,7 @@
 # !/.idea/codeStyles
 # !/.idea/inspectionProfiles
 # !/.idea/runConfigurations
+/.vscode/
 .DS_Store
 /build
 /captures

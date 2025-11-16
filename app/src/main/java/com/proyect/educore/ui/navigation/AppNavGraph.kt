@@ -53,7 +53,7 @@ fun AppNavGraph(
             RegisterScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onRegisterSuccess = {
-                    navController.navigate(AppDestination.Home.route) {
+                    navController.navigate(AppDestination.Login.route) {
                         popUpTo(AppDestination.Login.route) { inclusive = true }
                     }
                 }
