@@ -45,4 +45,42 @@ object ApiService {
             connection.disconnect()
         }
     }
+
+    suspend fun register(
+        nombre: String,
+        apellido: String,
+        email: String,
+        password: String
+    ): ApiResponse = withContext(Dispatchers.IO) {
+        val connection = (URL(BuildConfig.REGISTER_URL).openConnection() as HttpURLConnection)
+        try {
+            connection.requestMethod = "POST"
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+
+            val payload = JSONObject()
+                .put("nombre", nombre)
+                .put("apellido", apellido)
+                .put("email", email)
+                .put("password", password)
+                .toString()
+            connection.outputStream.use { output ->
+                output.write(payload.toByteArray(Charsets.UTF_8))
+            }
+
+            val responseCode = connection.responseCode
+            val responseStream = if (responseCode in 200..299) {
+                connection.inputStream
+            } else {
+                connection.errorStream
+            }
+            val responseText = responseStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            ApiResponse(responseCode, responseText)
+        } finally {
+            connection.disconnect()
+        }
+    }
 }
