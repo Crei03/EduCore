@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +42,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.proyect.educore.model.repository.AuthRepository
+import com.proyect.educore.model.repository.LoginResult
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
 import com.proyect.educore.ui.theme.EduCoreTheme
@@ -59,6 +63,7 @@ fun LoginScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
 
     fun showError(message: String) {
         coroutineScope.launch { snackbarHostState.showSnackbar(message) }
@@ -74,6 +79,25 @@ fun LoginScreen(
             return false
         }
         return true
+    }
+
+    fun attemptLogin() {
+        focusManager.clearFocus()
+        if (!validateInputs() || isLoading) {
+            return
+        }
+        isLoading = true
+        coroutineScope.launch {
+            val result = AuthRepository.login(email.trim(), password)
+            when (result) {
+                is LoginResult.Success -> {
+                    Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                    onLoginSuccess()
+                }
+                is LoginResult.Error -> showError(result.message)
+            }
+            isLoading = false
+        }
     }
 
     Scaffold(
@@ -149,13 +173,7 @@ fun LoginScreen(
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(onDone = {
-                        focusManager.clearFocus()
-                        if (validateInputs()) {
-                            Toast
-                                .makeText(context, "Sesión lista", Toast.LENGTH_SHORT)
-                                .show()
-                            onLoginSuccess()
-                        }
+                        attemptLogin()
                     }),
                     visualTransformation = if (passwordVisible) {
                         VisualTransformation.None
@@ -169,18 +187,19 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
-                    onClick = {
-                        focusManager.clearFocus()
-                        if (validateInputs()) {
-                            Toast
-                                .makeText(context, "Bienvenido", Toast.LENGTH_SHORT)
-                                .show()
-                            onLoginSuccess()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                    onClick = { attemptLogin() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
                 ) {
-                    Text(text = "Ingresar")
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text(text = if (isLoading) "Validando..." else "Ingresar")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(onClick = onNavigateToRegister) {
