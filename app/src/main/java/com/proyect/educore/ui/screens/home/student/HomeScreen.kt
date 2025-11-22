@@ -1,4 +1,4 @@
-package com.proyect.educore.ui.screens.home
+package com.proyect.educore.ui.screens.home.student
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
+fun StudentHomeScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -158,8 +158,8 @@ fun HomeScreen(
 
 @Preview(showBackground = true)
 @Composable
-private fun HomeScreenPreview() {
+private fun StudentHomeScreenPreview() {
     EduCoreTheme {
-        HomeScreen(onLogout = {})
+        StudentHomeScreen(onLogout = {})
     }
 }

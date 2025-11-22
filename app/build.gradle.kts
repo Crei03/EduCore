@@ -26,6 +26,11 @@ android {
             "REGISTER_URL",
             "\"http://10.0.2.2:80/EduCore/backend/Auth.php?action=register\""
         )
+        buildConfigField(
+            "String",
+            "TIPOS_TRAMITE_URL",
+            "\"http://10.0.2.2:80/EduCore/backend/TiposTramite.php\""
+        )
     }
 
     buildTypes {
