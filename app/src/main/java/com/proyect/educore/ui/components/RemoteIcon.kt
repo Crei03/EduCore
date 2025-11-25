@@ -30,7 +30,8 @@ enum class RemoteIconSpec(
     Lock("lock", "Icono candado"),
     Visibility("visibility", "Icono mostrar"),
     VisibilityOff("visibility_off", "Icono ocultar"),
-    ArrowForward("arrow_forward", "Icono siguiente");
+    ArrowForward("arrow_forward", "Icono siguiente"),
+    School("school", "Icono escuela");
 
     val url: String = "https://fonts.gstatic.com/s/i/materialiconsoutlined/$path/v1/24px.svg"
 }

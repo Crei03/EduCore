@@ -107,110 +107,151 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = 24.dp)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.SpaceBetween
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column {
-                Text(
-                    text = "Bienvenido de vuelta",
-                    style = MaterialTheme.typography.headlineLarge
-                )
-                Text(
-                    text = "Inicia sesión para acceder a tus trámites escolares.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Correo institucional") },
-                    placeholder = { Text("alumno@universidad.edu") },
-                    leadingIcon = {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.Email,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
+            RemoteIcon(
+                iconSpec = RemoteIconSpec.School,
+                tint = MaterialTheme.colorScheme.primary,
+                size = 80.dp
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Bienvenido de vuelta",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Inicia sesión para acceder a tus trámites escolares.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Correo institucional") },
+                placeholder = { Text("alumno@universidad.edu") },
+                leadingIcon = {
+                    RemoteIcon(
+                        iconSpec = RemoteIconSpec.Email,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                shape = MaterialTheme.shapes.medium
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Contraseña") },
-                    leadingIcon = {
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Contraseña") },
+                leadingIcon = {
+                    RemoteIcon(
+                        iconSpec = RemoteIconSpec.Lock,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         RemoteIcon(
-                            iconSpec = RemoteIconSpec.Lock,
+                            iconSpec = if (passwordVisible) {
+                                RemoteIconSpec.VisibilityOff
+                            } else {
+                                RemoteIconSpec.Visibility
+                            },
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            RemoteIcon(
-                                iconSpec = if (passwordVisible) {
-                                    RemoteIconSpec.VisibilityOff
-                                } else {
-                                    RemoteIconSpec.Visibility
-                                },
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = {
-                        attemptLogin()
-                    }),
-                    visualTransformation = if (passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
                     }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    attemptLogin()
+                }),
+                visualTransformation = if (passwordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                shape = MaterialTheme.shapes.medium
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            TextButton(
+                onClick = { /* TODO: Agregar lógica para recuperar contraseña */ },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                onClick = { attemptLogin() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                enabled = !isLoading,
+                shape = MaterialTheme.shapes.medium
             ) {
-                Button(
-                    onClick = { attemptLogin() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Text(text = if (isLoading) "Validando..." else "Ingresar")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = onNavigateToRegister) {
-                    RemoteIcon(
-                        iconSpec = RemoteIconSpec.PersonAdd,
-                        tint = MaterialTheme.colorScheme.primary
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Crear cuenta")
                 }
+                Text(
+                    text = if (isLoading) "Validando..." else "Ingresar",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            TextButton(
+                onClick = onNavigateToRegister,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "¿No tienes cuenta? ")
+                Text(
+                    text = "Regístrate aquí",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
