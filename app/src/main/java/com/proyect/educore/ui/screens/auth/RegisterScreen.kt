@@ -128,20 +128,36 @@ fun RegisterScreen(
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(horizontal = 24.dp)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                RemoteIcon(
+                    iconSpec = RemoteIconSpec.School,
+                    tint = MaterialTheme.colorScheme.primary,
+                    size = 80.dp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Text(
                     text = "Crear cuenta",
                     style = MaterialTheme.typography.headlineLarge
                 )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "Regístrate para iniciar tus trámites digitales.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Spacer(modifier = Modifier.height(32.dp))
 
                 OutlinedTextField(
                     value = firstName,
@@ -159,8 +175,11 @@ fun RegisterScreen(
                         capitalization = KeyboardCapitalization.Words,
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
-                    )
+                    ),
+                    shape = MaterialTheme.shapes.medium
                 )
+                
+                Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = lastName,
@@ -178,8 +197,11 @@ fun RegisterScreen(
                         capitalization = KeyboardCapitalization.Words,
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
-                    )
+                    ),
+                    shape = MaterialTheme.shapes.medium
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = email,
@@ -196,8 +218,11 @@ fun RegisterScreen(
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
-                    )
+                    ),
+                    shape = MaterialTheme.shapes.medium
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = password,
@@ -231,8 +256,11 @@ fun RegisterScreen(
                         VisualTransformation.None
                     } else {
                         PasswordVisualTransformation()
-                    }
+                    },
+                    shape = MaterialTheme.shapes.medium
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = confirmPassword,
@@ -267,39 +295,51 @@ fun RegisterScreen(
                         VisualTransformation.None
                     } else {
                         PasswordVisualTransformation()
-                    }
+                    },
+                    shape = MaterialTheme.shapes.medium
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                     onClick = { attemptRegister() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = !isLoading,
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier
-                                .size(18.dp),
+                                .size(20.dp),
                             strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                     }
-                    Text(text = if (isLoading) "Registrando..." else "Registrarme")
+                    Text(
+                        text = if (isLoading) "Registrando..." else "Registrarme",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 TextButton(
                     onClick = onNavigateBack,
-                    enabled = !isLoading
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    RemoteIcon(
-                        iconSpec = RemoteIconSpec.Login,
-                        tint = MaterialTheme.colorScheme.primary
+                    Text(text = "¿Ya tienes cuenta? ")
+                    Text(
+                        text = "Inicia sesión",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Ya tengo cuenta")
                 }
+                
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
 
