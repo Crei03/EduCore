@@ -88,6 +88,75 @@ object ApiService {
         performJsonRequest(url = url, method = "POST", payload = payload)
     }
 
+    // ============= TURNOS =============
+
+    suspend fun fetchTurnosEstudiante(
+        estudianteId: Long,
+        estado: String? = null
+    ): ApiResponse = withContext(Dispatchers.IO) {
+        val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
+        var url = BuildConfig.TURNOS_URL + "${separator}action=listByEstudiante&estudianteId=${estudianteId}"
+        if (!estado.isNullOrEmpty()) {
+            url += "&estado=${estado}"
+        }
+        performJsonRequest(url = url, method = "GET")
+    }
+
+    suspend fun fetchTurnoActual(estudianteId: Long): ApiResponse = withContext(Dispatchers.IO) {
+        val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
+        val url = BuildConfig.TURNOS_URL + "${separator}action=getCurrent&estudianteId=${estudianteId}"
+        performJsonRequest(url = url, method = "GET")
+    }
+
+    suspend fun fetchTiempoEstimado(tipoTramiteId: Int): ApiResponse = withContext(Dispatchers.IO) {
+        val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
+        val url = BuildConfig.TURNOS_URL + "${separator}action=estimateTime&tipoTramiteId=${tipoTramiteId}"
+        performJsonRequest(url = url, method = "GET")
+    }
+
+    suspend fun createTurno(
+        estudianteId: Long,
+        tipoTramiteId: Int,
+        estado: String = "EN_COLA",
+        horaSolicitud: String? = null,
+        observaciones: String = ""
+    ): ApiResponse = withContext(Dispatchers.IO) {
+        // Generar fecha/hora actual si no se proporciona
+        val fechaHora = horaSolicitud ?: java.text.SimpleDateFormat(
+            "yyyy-MM-dd HH:mm:ss",
+            java.util.Locale.getDefault()
+        ).format(java.util.Date())
+
+        val payload = JSONObject()
+            .put("estudiante_id", estudianteId)
+            .put("tipo_tramite_id", tipoTramiteId)
+            .put("estado", estado)
+            .put("hora_solicitud", fechaHora)
+            .put("observaciones", observaciones)
+
+        val url = BuildConfig.TURNOS_URL + "?action=create"
+        println("🔵 [ApiService] Creating turno - URL: $url")
+        println("🔵 [ApiService] Payload: $payload")
+        val response = performJsonRequest(url = url, method = "POST", payload = payload)
+        println("🔵 [ApiService] Response Code: ${response.code}")
+        println("🔵 [ApiService] Response Body: ${response.body}")
+        response
+    }
+
+    suspend fun cancelarTurno(turnoId: Long): ApiResponse = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("id", turnoId)
+            .put("estado", "CANCELADO")
+        val url = BuildConfig.TURNOS_URL + "?action=updateStatus"
+        performJsonRequest(url = url, method = "POST", payload = payload)
+    }
+
+    suspend fun fetchPosicionEnFila(turnoId: Long): ApiResponse = withContext(Dispatchers.IO) {
+        val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
+        val url = BuildConfig.TURNOS_URL + "${separator}action=getPosition&turnoId=${turnoId}"
+        performJsonRequest(url = url, method = "GET")
+    }
+
     private fun HttpURLConnection.readResponseBody(): String {
         val stream = if (responseCode in 200..299) {
             inputStream
