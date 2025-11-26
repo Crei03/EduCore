@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.proyect.educore.model.Usuario
 import com.proyect.educore.model.repository.AuthRepository
 import com.proyect.educore.model.repository.LoginResult
 import com.proyect.educore.ui.components.RemoteIcon
@@ -51,7 +52,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (Usuario) -> Unit,
     onNavigateToRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,7 +93,7 @@ fun LoginScreen(
             when (result) {
                 is LoginResult.Success -> {
                     Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
-                    onLoginSuccess()
+                    onLoginSuccess(result.usuario)
                 }
                 is LoginResult.Error -> showError(result.message)
             }
@@ -260,6 +261,6 @@ fun LoginScreen(
 @Composable
 private fun LoginScreenPreview() {
     EduCoreTheme {
-        LoginScreen(onLoginSuccess = {}, onNavigateToRegister = {})
+        LoginScreen(onLoginSuccess = { _ -> }, onNavigateToRegister = {})
     }
 }

@@ -31,7 +31,17 @@ enum class RemoteIconSpec(
     Visibility("visibility", "Icono mostrar"),
     VisibilityOff("visibility_off", "Icono ocultar"),
     ArrowForward("arrow_forward", "Icono siguiente"),
-    School("school", "Icono escuela");
+    School("school", "Icono escuela"),
+    ArrowBack("arrow_back", "Icono regresar"),
+    Add("add", "Icono agregar"),
+    List("list_alt", "Icono lista"),
+    Edit("edit", "Icono editar"),
+    Delete("delete", "Icono eliminar"),
+    Play("play_arrow", "Icono activar"),
+    Pause("pause_circle", "Icono suspender"),
+    Schedule("schedule", "Icono tiempo"),
+    Search("search", "Icono buscar"),
+    Filter("filter_list", "Icono filtrar");
 
     val url: String = "https://fonts.gstatic.com/s/i/materialiconsoutlined/$path/v1/24px.svg"
 }
