@@ -31,6 +31,7 @@ enum class RemoteIconSpec(
     Visibility("visibility", "Icono mostrar"),
     VisibilityOff("visibility_off", "Icono ocultar"),
     ArrowForward("arrow_forward", "Icono siguiente"),
+    School("school", "Icono escuela"),
     ArrowBack("arrow_back", "Icono regresar"),
     Add("add", "Icono agregar"),
     List("list_alt", "Icono lista"),
