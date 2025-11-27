@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -35,17 +34,17 @@ import androidx.compose.ui.unit.dp
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
 import com.proyect.educore.ui.theme.EduCoreTheme
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentHomeScreen(
+    modifier: Modifier = Modifier,
     onLogout: () -> Unit,
-    modifier: Modifier = Modifier
+    onNavigateToSolicitarTurno: () -> Unit = {},
+    onNavigateToHistorial: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -58,18 +57,14 @@ fun StudentHomeScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                text = { Text("Nuevo trámite") },
+                text = { Text("Solicitar turno") },
                 icon = {
                     RemoteIcon(
                         iconSpec = RemoteIconSpec.ArrowForward,
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 },
-                onClick = {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Esta función estará disponible pronto.")
-                    }
-                }
+                onClick = onNavigateToSolicitarTurno
             )
         }
     ) { innerPadding ->
@@ -109,21 +104,17 @@ fun StudentHomeScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Solicitudes recientes",
+                        text = "Mis turnos",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "No hay movimientos nuevos. Te avisaremos cuando se registre alguno.",
+                        text = "Consulta el estado de tus solicitudes de turno.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                     Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Sin solicitudes activas.")
-                            }
-                        },
+                        onClick = onNavigateToHistorial,
                         modifier = Modifier
                             .padding(top = 12.dp)
                             .fillMaxWidth()

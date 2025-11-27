@@ -31,6 +31,11 @@ android {
             "TIPOS_TRAMITE_URL",
             "\"http://10.0.2.2:80/EduCore/backend/TiposTramite.php\""
         )
+        buildConfigField(
+            "String",
+            "TURNOS_URL",
+            "\"http://10.0.2.2:80/EduCore/backend/Turnos.php\""
+        )
     }
 
     buildTypes {
@@ -70,6 +75,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.compose.ui.unit)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

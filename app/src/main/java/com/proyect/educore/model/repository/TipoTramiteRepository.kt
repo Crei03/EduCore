@@ -26,6 +26,8 @@ object TipoTramiteRepository {
 
     suspend fun obtenerTipos(includeDeleted: Boolean = false): TipoTramiteListResult {
         return try {
+
+            // http://127.0.0.1/EduCore/backend/TiposTramite.php?action=list
             val response = ApiService.fetchTiposTramite(includeDeleted)
             if (response.code !in 200..299) {
                 return TipoTramiteListResult.Error(response.body.extractMessage("No se pudieron obtener los trámites."))
@@ -40,6 +42,18 @@ object TipoTramiteRepository {
             TipoTramiteListResult.Success(parsed)
         } catch (e: Exception) {
             TipoTramiteListResult.Error("Error de red: " + (e.localizedMessage ?: "intenta más tarde."))
+        }
+    }
+
+    /**
+     * Obtiene la lista de tipos de trámite disponibles.
+     * Este método retorna un List nullable para compatibilidad con versiones anteriores.
+     * @return Lista de tipos de trámite o null si hay error
+     */
+    suspend fun getTiposTramite(includeDeleted: Boolean = false): List<TipoTramite>? {
+        return when (val result = obtenerTipos(includeDeleted)) {
+            is TipoTramiteListResult.Success -> result.tramites
+            is TipoTramiteListResult.Error -> null
         }
     }
 

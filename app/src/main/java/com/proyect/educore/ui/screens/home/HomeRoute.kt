@@ -14,7 +14,9 @@ import java.util.Locale
 @Composable
 fun HomeRoute(
     usuario: Usuario,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToSolicitarTurno: () -> Unit = {},
+    onNavigateToHistorial: () -> Unit = {}
 ) {
     when {
         usuario.isSecretary() -> {
@@ -32,8 +34,16 @@ fun HomeRoute(
                 )
             }
         }
-        usuario.isStudent() -> StudentHomeScreen(onLogout = onLogout)
-        else -> StudentHomeScreen(onLogout = onLogout)
+        usuario.isStudent() -> StudentHomeScreen(
+            onLogout = onLogout,
+            onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
+            onNavigateToHistorial = onNavigateToHistorial
+        )
+        else -> StudentHomeScreen(
+            onLogout = onLogout,
+            onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
+            onNavigateToHistorial = onNavigateToHistorial
+        )
     }
 }
 
