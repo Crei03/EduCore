@@ -30,7 +30,10 @@ data class Turno(
     // Campos adicionales para UI (no mapean directamente de BD)
     val tipoTramiteNombre: String? = null,
     val posicionEnFila: Int? = null,
-    val tiempoEstimadoMin: Int? = null
+    val tiempoEstimadoMin: Int? = null,
+    val estudianteNombre: String? = null,
+    val estudianteApellido: String? = null,
+    val estudianteEmail: String? = null
 )
 
 /**

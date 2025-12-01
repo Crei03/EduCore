@@ -4,6 +4,16 @@ import com.proyect.educore.data.api.ApiService
 import com.proyect.educore.model.Turno
 import org.json.JSONObject
 
+sealed interface TurnoPanelResult {
+    data class Success(val turnos: List<Turno>) : TurnoPanelResult
+    data class Error(val message: String) : TurnoPanelResult
+}
+
+sealed interface TurnoOperacionResult {
+    data class Success(val turno: Turno, val message: String) : TurnoOperacionResult
+    data class Error(val message: String) : TurnoOperacionResult
+}
+
 /**
  * Repositorio para gestionar las operaciones de Turnos.
  * Maneja la comunicación con el backend y la transformación de datos.
@@ -161,7 +171,9 @@ class TurnoRepository {
     suspend fun cancelarTurno(turnoId: Long): Boolean {
         return try {
             val response = ApiService.cancelarTurno(turnoId)
-            response.code in 200..299
+            if (response.code !in 200..299) return false
+            val json = JSONObject(response.body)
+            json.optBoolean("success", true)
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -189,6 +201,98 @@ class TurnoRepository {
     }
 
     /**
+     * Lista los turnos del día para el panel de secretaría.
+     */
+    suspend fun obtenerTurnosPanel(): TurnoPanelResult {
+        return try {
+            val response = ApiService.fetchTurnosDelDiaEnCola()
+            if (response.code !in 200..299) {
+                return TurnoPanelResult.Error(response.body.extractMessage("No se pudo cargar la cola de turnos."))
+            }
+            val jsonObject = JSONObject(response.body)
+            if (!jsonObject.optBoolean("success", false)) {
+                return TurnoPanelResult.Error(jsonObject.optString("message", "No se pudo cargar la cola de turnos."))
+            }
+            val dataArray = jsonObject.optJSONArray("data")
+            if (dataArray == null) {
+                TurnoPanelResult.Success(emptyList())
+            } else {
+                val turnos = mutableListOf<Turno>()
+                for (i in 0 until dataArray.length()) {
+                    val item = dataArray.optJSONObject(i) ?: continue
+                    turnos.add(parseTurnoFromJson(item))
+                }
+                TurnoPanelResult.Success(turnos)
+            }
+        } catch (e: Exception) {
+            TurnoPanelResult.Error("Error de red: " + (e.localizedMessage ?: "intenta más tarde."))
+        }
+    }
+
+    /**
+     * Llama al siguiente turno en cola y lo marca como ATENDIENDO.
+     */
+    suspend fun llamarSiguienteTurno(): TurnoOperacionResult {
+        return try {
+            val response = ApiService.callNextTurno()
+            if (response.code !in 200..299) {
+                return TurnoOperacionResult.Error(response.body.extractMessage("No se pudo llamar al siguiente turno."))
+            }
+            val jsonObject = JSONObject(response.body)
+            if (!jsonObject.optBoolean("success", false)) {
+                return TurnoOperacionResult.Error(jsonObject.optString("message", "No se pudo llamar al siguiente turno."))
+            }
+            val turno = jsonObject.optJSONObject("data")?.let { parseTurnoFromJson(it) }
+                ?: return TurnoOperacionResult.Error("Respuesta inválida del servidor.")
+            TurnoOperacionResult.Success(turno, jsonObject.optString("message", "Turno llamado."))
+        } catch (e: Exception) {
+            TurnoOperacionResult.Error("Error de red: " + (e.localizedMessage ?: "intenta más tarde."))
+        }
+    }
+
+    /**
+     * Finaliza la atención y marca el turno como ATENDIDO.
+     */
+    suspend fun finalizarAtencion(turnoId: Long): TurnoOperacionResult {
+        return try {
+            val response = ApiService.finalizarAtencion(turnoId)
+            if (response.code !in 200..299) {
+                return TurnoOperacionResult.Error(response.body.extractMessage("No se pudo finalizar la atención."))
+            }
+            val jsonObject = JSONObject(response.body)
+            if (!jsonObject.optBoolean("success", false)) {
+                return TurnoOperacionResult.Error(jsonObject.optString("message", "No se pudo finalizar la atención."))
+            }
+            val turno = jsonObject.optJSONObject("data")?.let { parseTurnoFromJson(it) }
+                ?: return TurnoOperacionResult.Error("Respuesta inválida del servidor.")
+            TurnoOperacionResult.Success(turno, jsonObject.optString("message", "Atención finalizada."))
+        } catch (e: Exception) {
+            TurnoOperacionResult.Error("Error de red: " + (e.localizedMessage ?: "intenta más tarde."))
+        }
+    }
+
+    /**
+     * Marca un turno como cancelado/ausente.
+     */
+    suspend fun marcarAusente(turnoId: Long, motivo: String = ""): TurnoOperacionResult {
+        return try {
+            val response = ApiService.marcarAusente(turnoId, motivo)
+            if (response.code !in 200..299) {
+                return TurnoOperacionResult.Error(response.body.extractMessage("No se pudo marcar el turno como cancelado."))
+            }
+            val jsonObject = JSONObject(response.body)
+            if (!jsonObject.optBoolean("success", false)) {
+                return TurnoOperacionResult.Error(jsonObject.optString("message", "No se pudo marcar el turno como cancelado."))
+            }
+            val turno = jsonObject.optJSONObject("data")?.let { parseTurnoFromJson(it) }
+                ?: return TurnoOperacionResult.Error("Respuesta inválida del servidor.")
+            TurnoOperacionResult.Success(turno, jsonObject.optString("message", "Turno cancelado."))
+        } catch (e: Exception) {
+            TurnoOperacionResult.Error("Error de red: " + (e.localizedMessage ?: "intenta más tarde."))
+        }
+    }
+
+    /**
      * Parsea un objeto JSON a una entidad Turno.
      */
     private fun parseTurnoFromJson(json: JSONObject): Turno {
@@ -199,15 +303,32 @@ class TurnoRepository {
             tipoTramiteId = json.optInt("tipo_tramite_id", 0),
             estado = json.optString("estado", "EN_COLA"),
             horaSolicitud = json.optString("hora_solicitud", ""),
-            horaInicioAtencion = json.optString("hora_inicio_atencion", ""),
-            horaFinAtencion = json.optString("hora_fin_atencion", ""),
-            observaciones = json.optString("observaciones", ""),
+            horaInicioAtencion = json.optStringOrNull("hora_inicio_atencion"),
+            horaFinAtencion = json.optStringOrNull("hora_fin_atencion"),
+            observaciones = json.optStringOrNull("observaciones"),
             creadoEn = json.optString("creado_en", ""),
             actualizadoEn = json.optString("actualizado_en", ""),
-            tipoTramiteNombre = if (json.has("tipo_tramite_nombre")) json.optString("tipo_tramite_nombre") else null,
-            posicionEnFila = json.optInt("posicion_en_fila", 0),
-            tiempoEstimadoMin = json.optInt("tiempo_estimado_min", 0)
+            tipoTramiteNombre = json.optStringOrNull("tipo_tramite_nombre"),
+            posicionEnFila = json.optInt("posicion_en_fila", 0).takeIf { json.has("posicion_en_fila") },
+            tiempoEstimadoMin = json.optInt("tiempo_estimado_min", 0).takeIf { json.has("tiempo_estimado_min") },
+            estudianteNombre = json.optStringOrNull("estudiante_nombre"),
+            estudianteApellido = json.optStringOrNull("estudiante_apellido"),
+            estudianteEmail = json.optStringOrNull("estudiante_email")
         )
+    }
+}
+
+private fun JSONObject.optStringOrNull(key: String): String? {
+    val value = optString(key, "")
+    return value.takeIf { it.isNotBlank() }
+}
+
+private fun String.extractMessage(fallback: String): String {
+    if (isBlank()) return fallback
+    return try {
+        JSONObject(this).optString("message", fallback).ifBlank { fallback }
+    } catch (_: Exception) {
+        fallback
     }
 }
 
