@@ -1,7 +1,35 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Carga de variables desde .env para configurar URLs base de la API.
+val envProps: Properties = Properties().apply {
+    val envFile = rootProject.file(".env")
+    if (envFile.exists()) {
+        envFile.inputStream().use { fis ->
+            this.load(fis)
+        }
+    }
+}
+
+fun envOrDefault(key: String, default: String): String {
+    val fromEnv = System.getenv(key)
+    val fromFile = envProps.getProperty(key)
+    return when {
+        !fromEnv.isNullOrBlank() -> fromEnv
+        !fromFile.isNullOrBlank() -> fromFile
+        else -> default
+    }
+}
+
+val urlBase: String = envProps.getProperty("URL_BASE", "").ifBlank {
+    System.getenv("URL_BASE") ?: throw GradleException(
+        "Falta IP en la configuración."
+    )
 }
 
 android {
@@ -19,22 +47,22 @@ android {
         buildConfigField(
             "String",
             "LOGIN_URL",
-            "\"http://10.0.2.2:80/EduCore/backend/Auth.php?action=login\""
+            "\"$urlBase/Auth.php?action=login\""
         )
         buildConfigField(
             "String",
             "REGISTER_URL",
-            "\"http://10.0.2.2:80/EduCore/backend/Auth.php?action=register\""
+            "\"$urlBase/Auth.php?action=register\""
         )
         buildConfigField(
             "String",
             "TIPOS_TRAMITE_URL",
-            "\"http://10.0.2.2:80/EduCore/backend/TiposTramite.php\""
+            "\"$urlBase/TiposTramite.php\""
         )
         buildConfigField(
             "String",
             "TURNOS_URL",
-            "\"http://10.0.2.2:80/EduCore/backend/Turnos.php\""
+            "\"$urlBase/Turnos.php\""
         )
     }
 
@@ -75,7 +103,6 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.compose.ui.unit)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
