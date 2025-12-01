@@ -33,6 +33,7 @@ import com.proyect.educore.ui.theme.EduCoreTheme
 fun SecretaryHomeScreen(
     usuario: Usuario,
     onNavigateToProcedures: () -> Unit,
+    onNavigateToQueue: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -62,6 +63,43 @@ fun SecretaryHomeScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(24.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Panel de atención",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Revisa la cola del día, llama al siguiente estudiante y registra el tiempo de atención.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                    Button(
+                        onClick = onNavigateToQueue,
+                        modifier = Modifier
+                            .padding(top = 16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        RemoteIcon(
+                            iconSpec = RemoteIconSpec.Play,
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Ir al panel",
+                            modifier = Modifier.padding(start = 0.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,6 +184,7 @@ private fun SecretaryHomeScreenPreview() {
                 rol = "SECRETARIA"
             ),
             onNavigateToProcedures = {},
+            onNavigateToQueue = {},
             onLogout = {}
         )
     }

@@ -95,7 +95,7 @@ object ApiService {
         estado: String? = null
     ): ApiResponse = withContext(Dispatchers.IO) {
         val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
-        var url = BuildConfig.TURNOS_URL + "${separator}action=listByEstudiante&estudianteId=${estudianteId}"
+        var url = BuildConfig.TURNOS_URL + "${separator}action=listByEstudiante&estudiante_id=${estudianteId}"
         if (!estado.isNullOrEmpty()) {
             url += "&estado=${estado}"
         }
@@ -155,6 +155,31 @@ object ApiService {
         val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
         val url = BuildConfig.TURNOS_URL + "${separator}action=getPosition&turnoId=${turnoId}"
         performJsonRequest(url = url, method = "GET")
+    }
+
+    suspend fun fetchTurnosDelDiaEnCola(): ApiResponse = withContext(Dispatchers.IO) {
+        val separator = if (BuildConfig.TURNOS_URL.contains("?")) "&" else "?"
+        val url = BuildConfig.TURNOS_URL + "${separator}action=queue"
+        performJsonRequest(url = url, method = "GET")
+    }
+
+    suspend fun callNextTurno(): ApiResponse = withContext(Dispatchers.IO) {
+        val url = BuildConfig.TURNOS_URL + "?action=callNext"
+        performJsonRequest(url = url, method = "POST", payload = JSONObject())
+    }
+
+    suspend fun finalizarAtencion(turnoId: Long): ApiResponse = withContext(Dispatchers.IO) {
+        val url = BuildConfig.TURNOS_URL + "?action=finish"
+        val payload = JSONObject().put("id", turnoId)
+        performJsonRequest(url = url, method = "POST", payload = payload)
+    }
+
+    suspend fun marcarAusente(turnoId: Long, motivo: String = ""): ApiResponse = withContext(Dispatchers.IO) {
+        val url = BuildConfig.TURNOS_URL + "?action=markAbsent"
+        val payload = JSONObject()
+            .put("id", turnoId)
+            .put("motivo", motivo)
+        performJsonRequest(url = url, method = "POST", payload = payload)
     }
 
     private fun HttpURLConnection.readResponseBody(): String {
