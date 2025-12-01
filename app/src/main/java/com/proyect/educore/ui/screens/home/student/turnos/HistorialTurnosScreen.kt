@@ -238,17 +238,15 @@ private fun TurnoHistorialCard(turno: Turno) {
                     value = formatearHora(turno.horaSolicitud),
                     modifier = Modifier.weight(1f)
                 )
-                if (turno.horaFinAtencion?.isNotEmpty() == true) {
-                    InfoItem(
-                        label = "Atendido",
-                        value = formatearHora(turno.horaFinAtencion),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                InfoItem(
+                    label = "Atendido",
+                    value = formatearHora(turno.horaFinAtencion, placeholder = "En proceso"),
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             // Observaciones si las hay
-            if (!turno.observaciones.isNullOrEmpty()) {
+            if (!turno.observaciones.isNullOrBlank() && !turno.observaciones.equals("null", ignoreCase = true)) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -324,12 +322,17 @@ private fun EmptyState() {
 }
 
 private fun formatearHora(fechaHora: String): String {
+    return formatearHora(fechaHora, "--")
+}
+
+private fun formatearHora(fechaHora: String?, placeholder: String): String {
+    if (fechaHora.isNullOrBlank() || fechaHora.equals("null", ignoreCase = true)) return placeholder
     // Extrae solo la hora de la fecha (formato: "YYYY-MM-DD HH:MM:SS")
     return try {
         val parts = fechaHora.split(" ")
         if (parts.size > 1) parts[1].substring(0, 5) else fechaHora
     } catch (_: Exception) {
-        fechaHora
+        placeholder
     }
 }
 
