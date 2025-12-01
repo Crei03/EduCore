@@ -41,11 +41,13 @@ fun HomeRoute(
             }
         }
         usuario.isStudent() -> StudentHomeScreen(
+            estudianteId = usuario.id.toLong(),
             onLogout = onLogout,
             onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
             onNavigateToHistorial = onNavigateToHistorial
         )
         else -> StudentHomeScreen(
+            estudianteId = usuario.id.toLong(),
             onLogout = onLogout,
             onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
             onNavigateToHistorial = onNavigateToHistorial
