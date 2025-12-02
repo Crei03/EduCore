@@ -12,25 +12,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,11 +39,18 @@ import com.proyect.educore.model.Turno
 import com.proyect.educore.model.repository.TurnoOperacionResult
 import com.proyect.educore.model.repository.TurnoPanelResult
 import com.proyect.educore.model.repository.TurnoRepository
+import com.proyect.educore.ui.components.ButtonVariant
+import com.proyect.educore.ui.components.EduCoreButton
+import com.proyect.educore.ui.components.EduCoreStatusBadge
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
-import com.proyect.educore.ui.theme.BluePrimary
-import com.proyect.educore.ui.theme.Success
-import com.proyect.educore.ui.theme.Warning
+import com.proyect.educore.ui.components.StatusType
+import com.proyect.educore.ui.components.cards.CardVariant
+import com.proyect.educore.ui.components.cards.EduCoreCard
+import com.proyect.educore.ui.components.cards.EduCoreEmptyCard
+import com.proyect.educore.ui.components.dialog.EduCoreBottomSheet
+import com.proyect.educore.ui.components.notification.EduCoreNotificationHost
+import com.proyect.educore.ui.components.notification.rememberNotificationState
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -64,7 +62,7 @@ fun SecretaryQueueScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
+    val notificationState = rememberNotificationState()
     val scope = rememberCoroutineScope()
     val repository = remember { TurnoRepository() }
 
@@ -94,7 +92,7 @@ fun SecretaryQueueScreen(
                     turnos.clear()
                     turnos.addAll(result.turnos)
                 }
-                is TurnoPanelResult.Error -> snackbarHostState.showSnackbar(result.message)
+                is TurnoPanelResult.Error -> notificationState.showError(result.message)
             }
             isLoading = false
         }
@@ -107,12 +105,12 @@ fun SecretaryQueueScreen(
             when (val result = repository.llamarSiguienteTurno()) {
                 is TurnoOperacionResult.Success -> {
                     updateTurnoLocal(result.turno)
-                    snackbarHostState.showSnackbar(result.message + " Notificación enviada al estudiante.")
+                    notificationState.showSuccess(result.message + " Notificación enviada al estudiante.")
                     selectedTurno = result.turno
                     showDetail = true
                     loadQueue()
                 }
-                is TurnoOperacionResult.Error -> snackbarHostState.showSnackbar(result.message)
+                is TurnoOperacionResult.Error -> notificationState.showError(result.message)
             }
             isCallingNext = false
         }
@@ -124,11 +122,11 @@ fun SecretaryQueueScreen(
         scope.launch {
             when (val result = repository.finalizarAtencion(turno.id)) {
                 is TurnoOperacionResult.Success -> {
-                    snackbarHostState.showSnackbar(result.message)
+                    notificationState.showSuccess(result.message)
                     loadQueue()
                     showDetail = false
                 }
-                is TurnoOperacionResult.Error -> snackbarHostState.showSnackbar(result.message)
+                is TurnoOperacionResult.Error -> notificationState.showError(result.message)
             }
             isOperating = false
         }
@@ -140,11 +138,11 @@ fun SecretaryQueueScreen(
         scope.launch {
             when (val result = repository.marcarAusente(turno.id, "Marcado desde panel")) {
                 is TurnoOperacionResult.Success -> {
-                    snackbarHostState.showSnackbar(result.message)
+                    notificationState.showWarning(result.message)
                     loadQueue()
                     showDetail = false
                 }
-                is TurnoOperacionResult.Error -> snackbarHostState.showSnackbar(result.message)
+                is TurnoOperacionResult.Error -> notificationState.showError(result.message)
             }
             isOperating = false
         }
@@ -152,170 +150,267 @@ fun SecretaryQueueScreen(
 
     LaunchedEffect(Unit) { loadQueue() }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(text = "Panel de atención") },
-                navigationIcon = {
-                    TextButton(onClick = onNavigateBack) {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.ArrowBack,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.size(4.dp))
-                        Text("Volver", color = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                actions = {
-                    TextButton(onClick = onLogout) {
-                        Text("Salir", color = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    // Bottom sheet para detalle del turno
+    if (showDetail && selectedTurno != null) {
+        val turno = selectedTurno!!
+        EduCoreBottomSheet(
+            visible = true,
+            onDismiss = { showDetail = false },
+            title = "Detalle del turno",
+            showCloseButton = true
         ) {
-            Text(
-                text = "Turnos del día",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Visualiza los turnos EN COLA y atiende en orden de solicitud.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Button(
-                onClick = { callNext() },
-                enabled = !isCallingNext && !isLoading,
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                RemoteIcon(
-                    iconSpec = RemoteIconSpec.Play,
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(text = if (isCallingNext) "Llamando..." else "Llamar siguiente")
-            }
-
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = BluePrimary)
-                }
-            } else if (turnos.isEmpty()) {
-                ElevatedCard(
+                // Información del estudiante
+                EduCoreCard(
+                    variant = CardVariant.FILLED,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "No hay turnos en cola.",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Cuando un estudiante solicite un turno aparecerá aquí para que puedas llamarlo.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(turnos, key = { it.id }) { turno ->
-                        TurnoCard(
-                            turno = turno,
-                            onClick = {
-                                selectedTurno = turno
-                                showDetail = true
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            RemoteIcon(
+                                iconSpec = RemoteIconSpec.Person,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Column {
+                                Text(
+                                    text = "Estudiante",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = turno.nombreCompleto(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
-                        )
+                        }
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            RemoteIcon(
+                                iconSpec = RemoteIconSpec.List,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                            Column {
+                                Text(
+                                    text = "Trámite",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = turno.tipoTramiteNombre ?: "Sin nombre",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }
-    }
-
-    if (showDetail && selectedTurno != null) {
-        val turno = selectedTurno!!
-        AlertDialog(
-            onDismissRequest = { showDetail = false },
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Detalle del turno")
-                    IconButton(onClick = { showDetail = false }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Cerrar")
-                    }
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DetailRow("Estudiante", turno.nombreCompleto())
-                    DetailRow("Trámite", turno.tipoTramiteNombre ?: "Sin nombre")
-                    DetailRow("Hora de solicitud", formatFechaHora(turno.horaSolicitud))
-                    DetailRow("Estado", estadoLegible(turno.estado))
-                    DetailRow(
-                        "Inicio de atención",
-                        formatFechaHora(turno.horaInicioAtencion, placeholder = "Aún no iniciada")
-                    )
-                    DetailRow(
-                        "Fin de atención",
-                        formatFechaHora(turno.horaFinAtencion, placeholder = "Aún no finalizada")
-                    )
-                    turno.observaciones?.takeIf { it.isNotBlank() }?.let {
-                        DetailRow("Notas", it)
-                    }
-                }
-            },
-            confirmButton = {
-                val puedeFinalizar = turno.estado.equals("ATENDIENDO", ignoreCase = true)
+                
+                // Estado y tiempos
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = { cancelar(turno) },
-                        enabled = !isOperating && !turno.estado.equals("ATENDIDO", ignoreCase = true),
+                    EduCoreCard(
+                        variant = CardVariant.OUTLINED,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Marcar cancelado")
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Estado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.size(4.dp))
+                            EduCoreStatusBadge(
+                                status = mapEstadoToStatusType(turno.estado),
+                                text = estadoLegible(turno.estado)
+                            )
+                        }
                     }
-                    Button(
-                        onClick = { finalizar(turno) },
-                        enabled = puedeFinalizar && !isOperating,
+                    
+                    EduCoreCard(
+                        variant = CardVariant.OUTLINED,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Finalizar atención")
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Solicitado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text(
+                                text = formatFechaHora(turno.horaSolicitud),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
-            },
-            dismissButton = {}
+                
+                // Tiempos de atención
+                EduCoreCard(
+                    variant = CardVariant.OUTLINED,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        DetailRow(
+                            "Inicio de atención",
+                            formatFechaHora(turno.horaInicioAtencion, placeholder = "Aún no iniciada")
+                        )
+                        DetailRow(
+                            "Fin de atención",
+                            formatFechaHora(turno.horaFinAtencion, placeholder = "Aún no finalizada")
+                        )
+                        turno.observaciones?.takeIf { it.isNotBlank() }?.let {
+                            DetailRow("Notas", it)
+                        }
+                    }
+                }
+                
+                // Botones de acción
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    EduCoreButton(
+                        text = "Marcar cancelado",
+                        onClick = { cancelar(turno) },
+                        variant = ButtonVariant.OUTLINE,
+                        enabled = !isOperating && !turno.estado.equals("ATENDIDO", ignoreCase = true),
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    val puedeFinalizar = turno.estado.equals("ATENDIENDO", ignoreCase = true)
+                    EduCoreButton(
+                        text = "Finalizar atención",
+                        onClick = { finalizar(turno) },
+                        variant = ButtonVariant.PRIMARY,
+                        enabled = puedeFinalizar && !isOperating,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text(text = "Panel de atención") },
+                    navigationIcon = {
+                        TextButton(onClick = onNavigateBack) {
+                            RemoteIcon(
+                                iconSpec = RemoteIconSpec.ArrowBack,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text("Volver", color = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = onLogout) {
+                            Text("Salir", color = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Turnos del día",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Visualiza los turnos EN COLA y atiende en orden de solicitud.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                EduCoreButton(
+                    text = if (isCallingNext) "Llamando..." else "Llamar siguiente",
+                    onClick = { callNext() },
+                    variant = ButtonVariant.PRIMARY,
+                    enabled = !isCallingNext && !isLoading,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                } else if (turnos.isEmpty()) {
+                    EduCoreEmptyCard(
+                        iconSpec = RemoteIconSpec.List,
+                        title = "No hay turnos en cola",
+                        description = "Cuando un estudiante solicite un turno aparecerá aquí para que puedas llamarlo.",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(turnos, key = { it.id }) { turno ->
+                            TurnoCard(
+                                turno = turno,
+                                onClick = {
+                                    selectedTurno = turno
+                                    showDetail = true
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        EduCoreNotificationHost(
+            state = notificationState,
+            modifier = Modifier.align(Alignment.TopCenter)
         )
     }
 }
@@ -325,10 +420,10 @@ private fun TurnoCard(
     turno: Turno,
     onClick: () -> Unit
 ) {
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
+    EduCoreCard(
+        variant = CardVariant.ELEVATED,
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -347,7 +442,10 @@ private fun TurnoCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                EstadoBadge(estado = turno.estado)
+                EduCoreStatusBadge(
+                    status = mapEstadoToStatusType(turno.estado),
+                    text = estadoLegible(turno.estado)
+                )
             }
             Spacer(modifier = Modifier.size(8.dp))
             Text(
@@ -366,26 +464,12 @@ private fun TurnoCard(
     }
 }
 
-@Composable
-private fun EstadoBadge(estado: String) {
-    val normalized = estado.uppercase(Locale.getDefault())
-    val (label, color) = when (normalized) {
-        "ATENDIENDO" -> "Atendiendo" to BluePrimary
-        "ATENDIDO" -> "Atendido" to Success
-        "CANCELADO", "AUSENTE" -> "Cancelado" to MaterialTheme.colorScheme.error
-        else -> "En cola" to Warning
-    }
-    Surface(
-        color = color.copy(alpha = 0.15f),
-        contentColor = color,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium
-        )
+private fun mapEstadoToStatusType(estado: String): StatusType {
+    return when (estado.uppercase(Locale.getDefault())) {
+        "ATENDIENDO" -> StatusType.INFO
+        "ATENDIDO" -> StatusType.SUCCESS
+        "CANCELADO", "AUSENTE" -> StatusType.ERROR
+        else -> StatusType.WARNING
     }
 }
 

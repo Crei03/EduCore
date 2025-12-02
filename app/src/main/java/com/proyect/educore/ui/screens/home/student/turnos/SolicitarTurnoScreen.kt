@@ -8,28 +8,30 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.proyect.educore.model.TipoTramite
 import com.proyect.educore.model.repository.TipoTramiteRepository
 import com.proyect.educore.model.repository.TurnoRepository
+import com.proyect.educore.ui.components.ButtonVariant
+import com.proyect.educore.ui.components.EduCoreButton
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
-import com.proyect.educore.ui.theme.BluePrimary
+import com.proyect.educore.ui.components.cards.CardVariant
+import com.proyect.educore.ui.components.cards.EduCoreCard
+import com.proyect.educore.ui.components.dialog.DialogType
+import com.proyect.educore.ui.components.dialog.EduCoreAlertDialog
+import com.proyect.educore.ui.components.notification.EduCoreNotificationHost
+import com.proyect.educore.ui.components.notification.rememberNotificationState
 import com.proyect.educore.ui.theme.EduCoreTheme
-import com.proyect.educore.ui.theme.NeutralBackgroundLight
-import com.proyect.educore.ui.theme.NeutralOutlineLight
-import com.proyect.educore.ui.theme.Warning
 import kotlinx.coroutines.launch
 
 /**
@@ -50,13 +52,15 @@ fun SolicitarTurnoScreen(
 ) {
     val scope = rememberCoroutineScope()
     val turnoRepository = remember { TurnoRepository() }
+    val notificationState = rememberNotificationState()
 
     var tiposTramite by remember { mutableStateOf<List<TipoTramite>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var selectedTramite by remember { mutableStateOf<TipoTramite?>(null) }
     var tiempoEstimado by remember { mutableStateOf(0) }
     var isCreatingTurno by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var lastTurnoId by remember { mutableStateOf<Long?>(null) }
 
     // Cargar tipos de trámite
     LaunchedEffect(Unit) {
@@ -76,199 +80,176 @@ fun SolicitarTurnoScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Solicitar Turno") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(NeutralBackgroundLight)
-                .padding(16.dp)
-        ) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = BluePrimary)
-                }
-            } else {
-                // Título e instrucción
-                Text(
-                    "Selecciona el tipo de trámite",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.marginBottom(16.dp)
-                )
-
-                // Lista de tipos de trámite
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(tiposTramite) { tramite ->
-                        TramiteSelectionCard(
-                            tramite = tramite,
-                            isSelected = selectedTramite?.id == tramite.id,
-                            onClick = { selectedTramite = tramite }
-                        )
-                    }
-                }
-
-                // Panel de tiempo estimado
-                AnimatedVisibility(visible = selectedTramite != null) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .marginTop(16.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = BluePrimary.copy(alpha = 0.1f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Solicitar Turno") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
                             RemoteIcon(
-                                iconSpec = RemoteIconSpec.Schedule,
-                                modifier = Modifier.size(24.dp)
+                                iconSpec = RemoteIconSpec.ArrowBack,
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
-                            Column {
-                                Text(
-                                    "Tiempo estimado de espera",
-                                    fontSize = 12.sp,
-                                    color = NeutralOutlineLight
-                                )
-                                Text(
-                                    "Aprox. $tiempoEstimado minutos",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BluePrimary
-                                )
-                            }
                         }
                     }
-                }
-
-                // Mensaje de error
-                if (errorMessage.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .marginTop(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp)
+            ) {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            errorMessage,
-                            modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp
-                        )
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
-                }
+                } else {
+                    // Título e instrucción
+                    Text(
+                        "Selecciona el tipo de trámite",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
 
-                // Botón confirmar
-                Button(
-                    onClick = {
-                        if (selectedTramite != null) {
-                            isCreatingTurno = true
-                            errorMessage = "" // Limpiar error previo
-                            scope.launch {
-                                try {
-                                    println("🟡 [SolicitarTurno] Iniciando creación de turno")
-                                    println("🟡 [SolicitarTurno] EstudianteId: $estudianteId")
-                                    println("🟡 [SolicitarTurno] TipoTramiteId: ${selectedTramite!!.id}")
-                                    println("🟡 [SolicitarTurno] Nombre del trámite: ${selectedTramite!!.nombre}")
+                    // Lista de tipos de trámite
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(tiposTramite) { tramite ->
+                            TramiteCard(
+                                tramite = tramite,
+                                isSelected = selectedTramite?.id == tramite.id,
+                                onClick = { selectedTramite = tramite }
+                            )
+                        }
+                    }
 
-                                    val turno = turnoRepository.crearTurno(
-                                        estudianteId = estudianteId,
-                                        tipoTramiteId = selectedTramite!!.id
+                    // Panel de tiempo estimado
+                    AnimatedVisibility(visible = selectedTramite != null) {
+                        EduCoreCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            variant = CardVariant.GRADIENT
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    RemoteIcon(
+                                        iconSpec = RemoteIconSpec.Schedule,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        size = 24.dp
                                     )
-
-                                    println("🟡 [SolicitarTurno] Turno recibido: $turno")
-
-                                    if (turno != null) {
-                                        println("✅ [SolicitarTurno] Turno creado exitosamente!")
-                                        println("✅ [SolicitarTurno] - ID: ${turno.id}")
-                                        println("✅ [SolicitarTurno] - Código: ${turno.codigoTurno}")
-                                        println("✅ [SolicitarTurno] - Estado: ${turno.estado}")
-                                        onTurnoCreated(turno.id)
-                                    } else {
-                                        println("🔴 [SolicitarTurno] El servidor retornó NULL")
-                                        println("🔴 [SolicitarTurno] Posibles causas:")
-                                        println("   1. El servidor no está corriendo (XAMPP/Apache)")
-                                        println("   2. La base de datos no está disponible")
-                                        println("   3. El estudiante o tipo de trámite no existe en BD")
-                                        println("   4. Error en la URL del servidor")
-                                        errorMessage = "No se pudo crear el turno. Verifica:\n" +
-                                                "• Que el servidor esté corriendo (XAMPP)\n" +
-                                                "• Que la base de datos esté activa\n" +
-                                                "• Tu conexión de red"
-                                    }
-                                } catch (e: java.net.ConnectException) {
-                                    println("🔴 [SolicitarTurno] Error de conexión: ${e.message}")
-                                    errorMessage = "No se puede conectar al servidor.\n" +
-                                            "Verifica que XAMPP esté corriendo y la URL sea correcta."
-                                } catch (e: java.net.SocketTimeoutException) {
-                                    println("🔴 [SolicitarTurno] Timeout: ${e.message}")
-                                    errorMessage = "El servidor no responde.\n" +
-                                            "Revisa tu conexión y el servidor."
-                                } catch (e: Exception) {
-                                    println("🔴 [SolicitarTurno] Exception: ${e.javaClass.simpleName}")
-                                    println("🔴 [SolicitarTurno] Mensaje: ${e.message}")
-                                    e.printStackTrace()
-                                    errorMessage = "Error inesperado: ${e.javaClass.simpleName}\n${e.message}"
-                                } finally {
-                                    isCreatingTurno = false
+                                }
+                                Column {
+                                    Text(
+                                        "Tiempo estimado de espera",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        "Aprox. $tiempoEstimado minutos",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .marginTop(16.dp),
-                    enabled = selectedTramite != null && !isCreatingTurno
-                ) {
-                    if (isCreatingTurno) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("Confirmar Turno")
                     }
+
+                    // Botón confirmar
+                    EduCoreButton(
+                        text = "Confirmar Turno",
+                        onClick = {
+                            if (selectedTramite != null) {
+                                isCreatingTurno = true
+                                scope.launch {
+                                    try {
+                                        val turno = turnoRepository.crearTurno(
+                                            estudianteId = estudianteId,
+                                            tipoTramiteId = selectedTramite!!.id
+                                        )
+
+                                        if (turno != null) {
+                                            lastTurnoId = turno.id
+                                            showSuccessDialog = true
+                                        } else {
+                                            notificationState.showError(
+                                                "No se pudo crear el turno. Verifica tu conexión."
+                                            )
+                                        }
+                                    } catch (e: java.net.ConnectException) {
+                                        notificationState.showError("No se puede conectar al servidor.")
+                                    } catch (e: java.net.SocketTimeoutException) {
+                                        notificationState.showError("El servidor no responde.")
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        notificationState.showError("Error inesperado: ${e.message}")
+                                    } finally {
+                                        isCreatingTurno = false
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        variant = ButtonVariant.PRIMARY,
+                        isLoading = isCreatingTurno,
+                        enabled = selectedTramite != null && !isCreatingTurno,
+                        fullWidth = true
+                    )
                 }
             }
         }
-    }
-}
 
+        // Host de notificaciones
+        EduCoreNotificationHost(
+            state = notificationState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+
+    // Diálogo de éxito
+    EduCoreAlertDialog(
+        visible = showSuccessDialog,
+        onDismiss = {
+            showSuccessDialog = false
+            lastTurnoId?.let { onTurnoCreated(it) }
+        },
+        title = "Turno creado",
+        message = "Tu solicitud se registró con éxito.",
+        type = DialogType.SUCCESS,
+        buttonText = "Ir al inicio"
+    )
+}
 
 /**
  * Componente de tarjeta para seleccionar tipo de trámite.
  */
 @Composable
-private fun TramiteSelectionCard(
+private fun TramiteCard(
     tramite: TipoTramite,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -279,12 +260,12 @@ private fun TramiteSelectionCard(
             .clickable(enabled = true, onClick = onClick)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) BluePrimary else NeutralOutlineLight,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(12.dp)
             ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) BluePrimary.copy(alpha = 0.15f)
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
             else MaterialTheme.colorScheme.surface
         )
     ) {
@@ -293,30 +274,27 @@ private fun TramiteSelectionCard(
         ) {
             Text(
                 tramite.nombre,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (tramite.descripcion.isNotEmpty()) {
                 Text(
                     tramite.descripcion,
-                    fontSize = 12.sp,
-                    color = NeutralOutlineLight,
-                    modifier = Modifier.marginTop(4.dp)
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
             Text(
                 "Duración estimada: ${tramite.duracionEstimadaMin} min",
-                fontSize = 11.sp,
-                color = Warning,
-                modifier = Modifier.marginTop(8.dp)
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
     }
 }
-
-private fun Modifier.marginTop(value: Dp) = this.then(Modifier.padding(top = value))
-private fun Modifier.marginBottom(value: Dp) = this.then(Modifier.padding(bottom = value))
 
 @Preview(showBackground = true)
 @Composable

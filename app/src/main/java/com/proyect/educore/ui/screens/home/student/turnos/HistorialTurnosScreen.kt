@@ -4,43 +4,32 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
 import com.proyect.educore.model.EstadoTurno
 import com.proyect.educore.model.Turno
 import com.proyect.educore.model.repository.TurnoRepository
-import com.proyect.educore.ui.theme.BluePrimary
-import com.proyect.educore.ui.theme.NeutralBackgroundLight
-import com.proyect.educore.ui.theme.NeutralOutlineLight
-import com.proyect.educore.ui.theme.Success
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
+import com.proyect.educore.ui.components.EduCoreFilterChip
+import com.proyect.educore.ui.components.EduCoreStatusBadge
+import com.proyect.educore.ui.components.RemoteIcon
+import com.proyect.educore.ui.components.RemoteIconSpec
+import com.proyect.educore.ui.components.StatusType
+import com.proyect.educore.ui.components.cards.CardVariant
+import com.proyect.educore.ui.components.cards.EduCoreCard
+import com.proyect.educore.ui.components.cards.EduCoreEmptyCard
 import com.proyect.educore.ui.theme.EduCoreTheme
+import kotlinx.coroutines.launch
 
 /**
  * Pantalla que muestra el historial de turnos del estudiante.
@@ -82,7 +71,10 @@ fun HistorialTurnosScreen(
                 title = { Text("Historial de Turnos") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        RemoteIcon(
+                            iconSpec = RemoteIconSpec.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 }
             )
@@ -92,7 +84,7 @@ fun HistorialTurnosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(NeutralBackgroundLight)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Filtros
             FilterChips(
@@ -108,10 +100,17 @@ fun HistorialTurnosScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = BluePrimary)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (turnosFiltrados.isEmpty()) {
-                EmptyState()
+                EduCoreEmptyCard(
+                    iconSpec = RemoteIconSpec.Schedule,
+                    title = "Sin historial",
+                    description = "Aún no tienes turnos registrados en tu historial.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier
@@ -139,51 +138,55 @@ private fun FilterChips(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        FilterChip(
+        EduCoreFilterChip(
+            text = "Todos",
             selected = selectedFilter == null,
-            onClick = { onFilterChange(null) },
-            label = { Text("Todos") }
+            onClick = { onFilterChange(null) }
         )
-        FilterChip(
+        EduCoreFilterChip(
+            text = "En espera",
+            selected = selectedFilter == EstadoTurno.EN_COLA.valor,
+            onClick = { onFilterChange(EstadoTurno.EN_COLA.valor) }
+        )
+        EduCoreFilterChip(
+            text = "Atendidos",
             selected = selectedFilter == EstadoTurno.ATENDIDO.valor,
-            onClick = { onFilterChange(EstadoTurno.ATENDIDO.valor) },
-            label = { Text("Completados") }
+            onClick = { onFilterChange(EstadoTurno.ATENDIDO.valor) }
         )
-        FilterChip(
+        EduCoreFilterChip(
+            text = "Cancelados",
             selected = selectedFilter == EstadoTurno.CANCELADO.valor,
-            onClick = { onFilterChange(EstadoTurno.CANCELADO.valor) },
-            label = { Text("Cancelados") }
-        )
-        FilterChip(
-            selected = selectedFilter == EstadoTurno.AUSENTE.valor,
-            onClick = { onFilterChange(EstadoTurno.AUSENTE.valor) },
-            label = { Text("Ausentes") }
+            onClick = { onFilterChange(EstadoTurno.CANCELADO.valor) }
         )
     }
 }
 
 @Composable
 private fun TurnoHistorialCard(turno: Turno) {
-    val statusIcon = when (turno.estado) {
-        EstadoTurno.ATENDIDO.valor -> Icons.Filled.CheckCircle
-        EstadoTurno.CANCELADO.valor -> Icons.Filled.Close
-        EstadoTurno.AUSENTE.valor -> Icons.Filled.Close
-        else -> Icons.Filled.Info
+    val colorScheme = MaterialTheme.colorScheme
+    
+    // Mapeo correcto de iconos según el estado del turno
+    val (statusIcon, statusType) = when (turno.estado) {
+        EstadoTurno.ATENDIDO.valor -> RemoteIconSpec.Check to StatusType.SUCCESS
+        EstadoTurno.ATENDIENDO.valor -> RemoteIconSpec.Play to StatusType.INFO
+        EstadoTurno.CANCELADO.valor -> RemoteIconSpec.Cancel to StatusType.ERROR
+        EstadoTurno.AUSENTE.valor -> RemoteIconSpec.Block to StatusType.ERROR
+        EstadoTurno.EN_COLA.valor -> RemoteIconSpec.AccessTime to StatusType.WARNING
+        else -> RemoteIconSpec.Schedule to StatusType.INFO
     }
 
     val statusColor = when (turno.estado) {
-        EstadoTurno.ATENDIDO.valor -> Success
-        EstadoTurno.CANCELADO.valor -> MaterialTheme.colorScheme.error
-        EstadoTurno.AUSENTE.valor -> MaterialTheme.colorScheme.error
-        else -> NeutralOutlineLight
+        EstadoTurno.ATENDIDO.valor -> colorScheme.secondary
+        EstadoTurno.ATENDIENDO.valor -> colorScheme.primary
+        EstadoTurno.CANCELADO.valor -> colorScheme.error
+        EstadoTurno.AUSENTE.valor -> colorScheme.error
+        EstadoTurno.EN_COLA.valor -> colorScheme.tertiary
+        else -> colorScheme.onSurfaceVariant
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    EduCoreCard(
+        variant = CardVariant.ELEVATED,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -195,73 +198,93 @@ private fun TurnoHistorialCard(turno: Turno) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    turno.codigoTurno,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        statusIcon,
-                        contentDescription = null,
-                        tint = statusColor,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(statusColor.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        RemoteIcon(
+                            iconSpec = statusIcon,
+                            tint = statusColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     Text(
-                        turno.estado,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = statusColor
+                        turno.codigoTurno,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+                EduCoreStatusBadge(
+                    status = statusType,
+                    text = turno.estado
+                )
             }
 
             // Tipo de trámite
             Text(
                 turno.tipoTramiteNombre ?: "Tipo de trámite",
-                fontSize = 13.sp,
-                color = NeutralOutlineLight,
-                modifier = Modifier.marginBottom(8.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                color = colorScheme.onSurfaceVariant,
+                modifier = Modifier.marginBottom(12.dp)
             )
 
             // Información de tiempos
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            EduCoreCard(
+                variant = CardVariant.FILLED,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                InfoItem(
-                    label = "Solicitado",
-                    value = formatearHora(turno.horaSolicitud),
-                    modifier = Modifier.weight(1f)
-                )
-                InfoItem(
-                    label = "Atendido",
-                    value = formatearHora(turno.horaFinAtencion, placeholder = "En proceso"),
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier
+                        .background(colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(12.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    InfoItem(
+                        label = "Solicitado",
+                        value = formatearHora(turno.horaSolicitud),
+                        modifier = Modifier.weight(1f)
+                    )
+                    InfoItem(
+                        label = "Atendido",
+                        value = formatearHora(turno.horaFinAtencion, placeholder = "En proceso"),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             // Observaciones si las hay
             if (!turno.observaciones.isNullOrBlank() && !turno.observaciones.equals("null", ignoreCase = true)) {
-                Card(
+                EduCoreCard(
+                    variant = CardVariant.OUTLINED,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .marginTop(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = NeutralBackgroundLight
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                        .marginTop(12.dp)
                 ) {
-                    Text(
-                        turno.observaciones,
-                        modifier = Modifier.padding(10.dp),
-                        fontSize = 11.sp,
-                        color = NeutralOutlineLight
-                    )
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        RemoteIcon(
+                            iconSpec = RemoteIconSpec.Edit,
+                            tint = colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            turno.observaciones,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -277,47 +300,16 @@ private fun InfoItem(
     Column(modifier = modifier) {
         Text(
             label,
-            fontSize = 10.sp,
-            color = NeutralOutlineLight
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             value,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface
         )
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                Icons.Filled.Info,
-                contentDescription = null,
-                tint = NeutralOutlineLight,
-                modifier = Modifier.size(48.dp)
-            )
-            Text(
-                "Sin historial",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.marginTop(12.dp)
-            )
-            Text(
-                "Aún no tienes turnos registrados",
-                fontSize = 13.sp,
-                color = NeutralOutlineLight,
-                modifier = Modifier.marginTop(4.dp)
-            )
-        }
     }
 }
 

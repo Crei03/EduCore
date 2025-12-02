@@ -132,8 +132,8 @@ fun AppNavGraph(
             if (usuario != null) {
                 SolicitarTurnoScreen(
                     estudianteId = usuario.id.toLong(),
-                    onTurnoCreated = { turnoId ->
-                        navController.navigate("detalleTurno/$turnoId")
+                    onTurnoCreated = { _ ->
+                        navController.popBackStack(AppDestination.Home.route, inclusive = false)
                     },
                     onBackClick = { navController.popBackStack() }
                 )
