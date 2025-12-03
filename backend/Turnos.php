@@ -532,6 +532,18 @@ function handleCreate(array $payload): void
         return;
     }
 
+    $turnoActivo = fetchTurnoActivo($conn, $estudianteId);
+    if ($turnoActivo !== null) {
+        $conn->close();
+        http_response_code(409);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Ya tienes un turno en curso. Cancélalo o espera a que finalice antes de solicitar otro.',
+            'data' => $turnoActivo
+        ]);
+        return;
+    }
+
     $codigoTurno = generarCodigoTurno($conn);
     $horaInicioAtencionDb = $horaInicioAtencion === '' ? null : $horaInicioAtencion;
     $horaFinAtencionDb = $horaFinAtencion === '' ? null : $horaFinAtencion;
@@ -904,6 +916,23 @@ function fetchTurnoDetallado(mysqli $conn, int $id): array
     if (!$turno) {
         return [];
     }
+    return normalizeTurno($turno);
+}
+
+function fetchTurnoActivo(mysqli $conn, int $estudianteId): ?array
+{
+    $query = "SELECT t.*, u.nombre AS estudiante_nombre, u.apellido AS estudiante_apellido, u.email AS estudiante_email, tt.nombre AS tipo_tramite_nombre FROM turnos t LEFT JOIN usuarios u ON t.estudiante_id = u.id LEFT JOIN tipos_tramite tt ON t.tipo_tramite_id = tt.id WHERE t.estudiante_id = ? AND t.estado IN ('EN_COLA','ATENDIENDO') ORDER BY t.hora_solicitud ASC LIMIT 1";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param('i', $estudianteId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $turno = $result->fetch_assoc();
+    $stmt->close();
+
+    if (!$turno) {
+        return null;
+    }
+
     return normalizeTurno($turno);
 }
 

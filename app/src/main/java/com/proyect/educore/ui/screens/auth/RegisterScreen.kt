@@ -1,7 +1,6 @@
 package com.proyect.educore.ui.screens.auth
 
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,21 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,19 +28,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.proyect.educore.model.repository.AuthRepository
 import com.proyect.educore.model.repository.RegisterResult
+import com.proyect.educore.ui.components.ButtonVariant
+import com.proyect.educore.ui.components.EduCoreButton
+import com.proyect.educore.ui.components.EduCoreTextField
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
+import com.proyect.educore.ui.components.notification.EduCoreNotificationHost
+import com.proyect.educore.ui.components.notification.rememberNotificationState
 import com.proyect.educore.ui.theme.EduCoreTheme
 import kotlinx.coroutines.launch
 
@@ -58,8 +53,7 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val notificationState = rememberNotificationState()
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
@@ -68,12 +62,10 @@ fun RegisterScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
     var isLoading by rememberSaveable { mutableStateOf(false) }
 
     fun showError(message: String) {
-        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+        notificationState.showError(message)
     }
 
     fun validateInputs(): Boolean {
@@ -109,9 +101,7 @@ fun RegisterScreen(
         coroutineScope.launch {
             when (val result = AuthRepository.register(firstName.trim(), lastName.trim(), email.trim(), password)) {
                 is RegisterResult.Success -> {
-                    Toast
-                        .makeText(context, result.message, Toast.LENGTH_SHORT)
-                        .show()
+                    notificationState.showSuccess(result.message)
                     onRegisterSuccess()
                 }
                 is RegisterResult.Error -> showError(result.message)
@@ -122,8 +112,7 @@ fun RegisterScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+            modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
             Column(
                 modifier = Modifier
@@ -136,13 +125,22 @@ fun RegisterScreen(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                RemoteIcon(
-                    iconSpec = RemoteIconSpec.School,
-                    tint = MaterialTheme.colorScheme.primary,
-                    size = 80.dp
-                )
+                    // Logo con fondo circular moderno
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        RemoteIcon(
+                            iconSpec = RemoteIconSpec.School,
+                            tint = MaterialTheme.colorScheme.primary,
+                            size = 56.dp
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Text(
                     text = "Crear cuenta",
@@ -157,172 +155,77 @@ fun RegisterScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
-                OutlinedTextField(
-                    value = firstName,
-                    onValueChange = { firstName = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Nombre") },
-                    leadingIcon = {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.Person,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        keyboardType = KeyboardType.Text,
+                    // Campos con nuevos componentes
+                    EduCoreTextField(
+                        value = firstName,
+                        onValueChange = { firstName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "Nombre",
+                        leadingIcon = RemoteIconSpec.Person,
                         imeAction = ImeAction.Next
-                    ),
-                    shape = MaterialTheme.shapes.medium
-                )
+                    )
                 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = lastName,
-                    onValueChange = { lastName = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Apellido") },
-                    leadingIcon = {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.Person,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        keyboardType = KeyboardType.Text,
+                    EduCoreTextField(
+                        value = lastName,
+                        onValueChange = { lastName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "Apellido",
+                        leadingIcon = RemoteIconSpec.Person,
                         imeAction = ImeAction.Next
-                    ),
-                    shape = MaterialTheme.shapes.medium
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Correo institucional") },
-                    leadingIcon = {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.Email,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
+                    EduCoreTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "Correo institucional",
+                        leadingIcon = RemoteIconSpec.Email,
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
-                    ),
-                    shape = MaterialTheme.shapes.medium
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Contraseña") },
-                    leadingIcon = {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.Lock,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            RemoteIcon(
-                                iconSpec = if (passwordVisible) {
-                                    RemoteIconSpec.VisibilityOff
-                                } else {
-                                    RemoteIconSpec.Visibility
-                                },
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
+                    EduCoreTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "Contraseña",
+                        leadingIcon = RemoteIconSpec.Lock,
+                        isPassword = true,
                         imeAction = ImeAction.Next
-                    ),
-                    visualTransformation = if (passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    shape = MaterialTheme.shapes.medium
-                )
+                    )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Confirmar contraseña") },
-                    leadingIcon = {
-                        RemoteIcon(
-                            iconSpec = RemoteIconSpec.Lock,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                            RemoteIcon(
-                                iconSpec = if (confirmPasswordVisible) {
-                                    RemoteIconSpec.VisibilityOff
-                                } else {
-                                    RemoteIconSpec.Visibility
-                                },
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(onDone = { attemptRegister() }),
-                    visualTransformation = if (confirmPasswordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    shape = MaterialTheme.shapes.medium
-                )
+                    EduCoreTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "Confirmar contraseña",
+                        leadingIcon = RemoteIconSpec.Lock,
+                        isPassword = true,
+                        imeAction = ImeAction.Done,
+                        onImeAction = { attemptRegister() }
+                    )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Button(
-                    onClick = { attemptRegister() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    enabled = !isLoading,
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                    Text(
+                    EduCoreButton(
                         text = if (isLoading) "Registrando..." else "Registrarme",
-                        style = MaterialTheme.typography.titleMedium
+                        onClick = { attemptRegister() },
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = ButtonVariant.PRIMARY,
+                        isLoading = isLoading,
+                        enabled = !isLoading,
+                        fullWidth = true
                     )
-                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -343,6 +246,7 @@ fun RegisterScreen(
             }
         }
 
+        // Overlay de carga
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -353,6 +257,12 @@ fun RegisterScreen(
                 CircularProgressIndicator()
             }
         }
+
+        // Host de notificaciones
+        EduCoreNotificationHost(
+            state = notificationState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
 

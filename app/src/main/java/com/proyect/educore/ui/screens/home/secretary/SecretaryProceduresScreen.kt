@@ -10,28 +10,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -46,22 +43,31 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import com.proyect.educore.model.TipoTramite
 import com.proyect.educore.model.Usuario
 import com.proyect.educore.model.repository.EstadoOperacionResult
 import com.proyect.educore.model.repository.TipoTramiteListResult
 import com.proyect.educore.model.repository.TipoTramiteRepository
 import com.proyect.educore.model.repository.TipoTramiteResult
+import com.proyect.educore.ui.components.EduCoreSearchField
+import com.proyect.educore.ui.components.EduCoreStatusBadge
+import com.proyect.educore.ui.components.EduCoreTextField
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
+import com.proyect.educore.ui.components.StatusType
+import com.proyect.educore.ui.components.cards.CardVariant
+import com.proyect.educore.ui.components.cards.EduCoreCard
+import com.proyect.educore.ui.components.cards.EduCoreEmptyCard
+import com.proyect.educore.ui.components.cards.EduCoreStatCard
+import com.proyect.educore.ui.components.dialog.DialogType
+import com.proyect.educore.ui.components.dialog.EduCoreConfirmDialog
+import com.proyect.educore.ui.components.dialog.EduCoreDialog
+import com.proyect.educore.ui.components.notification.EduCoreNotificationHost
+import com.proyect.educore.ui.components.notification.rememberNotificationState
 import com.proyect.educore.ui.theme.EduCoreTheme
 import kotlinx.coroutines.launch
 
@@ -75,9 +81,9 @@ fun SecretaryProceduresScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val notificationState = rememberNotificationState()
     val coroutineScope = rememberCoroutineScope()
+    val colorScheme = MaterialTheme.colorScheme
 
     val tramites = remember { mutableStateListOf<TipoTramite>() }
     var isLoading by rememberSaveable { mutableStateOf(false) }
@@ -94,7 +100,15 @@ fun SecretaryProceduresScreen(
     var initialLoadDone by rememberSaveable { mutableStateOf(false) }
 
     fun launchMessage(message: String) {
-        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+        notificationState.showInfo(message)
+    }
+
+    fun launchSuccess(message: String) {
+        notificationState.showSuccess(message)
+    }
+
+    fun launchError(message: String) {
+        notificationState.showError(message)
     }
 
     fun openCreateDialog() {
@@ -131,7 +145,7 @@ fun SecretaryProceduresScreen(
                     tramites.clear()
                     tramites.addAll(result.tramites)
                 }
-                is TipoTramiteListResult.Error -> launchMessage(result.message)
+                is TipoTramiteListResult.Error -> launchError(result.message)
             }
             isLoading = false
             initialLoadDone = true
@@ -142,11 +156,11 @@ fun SecretaryProceduresScreen(
         val trimmedName = nombre.trim()
         val durationValue = duracion.toIntOrNull()
         if (trimmedName.length < 3) {
-            launchMessage("Ingresa un nombre válido.")
+            launchError("Ingresa un nombre válido.")
             return
         }
         if (durationValue == null || durationValue <= 0) {
-            launchMessage("La duración debe ser mayor a 0 minutos.")
+            launchError("La duración debe ser mayor a 0 minutos.")
             return
         }
         if (isSaving) return
@@ -161,9 +175,9 @@ fun SecretaryProceduresScreen(
                 is TipoTramiteResult.Success -> {
                     upsertLocalTramite(result.tramite)
                     showEditor = false
-                    launchMessage(result.message)
+                    launchSuccess(result.message)
                 }
-                is TipoTramiteResult.Error -> launchMessage(result.message)
+                is TipoTramiteResult.Error -> launchError(result.message)
             }
             isSaving = false
         }
@@ -177,9 +191,9 @@ fun SecretaryProceduresScreen(
                 is EstadoOperacionResult.Success -> {
                     val updated = tramite.copy(activo = result.estado)
                     upsertLocalTramite(updated)
-                    launchMessage(result.message)
+                    launchSuccess(result.message)
                 }
-                is EstadoOperacionResult.Error -> launchMessage(result.message)
+                is EstadoOperacionResult.Error -> launchError(result.message)
             }
             statusChangeId = null
         }
@@ -204,42 +218,35 @@ fun SecretaryProceduresScreen(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text(text = "TRÁMITES") },
+                    title = { Text(text = "Gestión de trámites") },
                     navigationIcon = {
-                        TextButton(onClick = onNavigateBack) {
+                        IconButton(onClick = onNavigateBack) {
                             RemoteIcon(
                                 iconSpec = RemoteIconSpec.ArrowBack,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Volver", color = MaterialTheme.colorScheme.primary)
-                        }
-                    },
-                    actions = {
-                        TextButton(onClick = onLogout) {
-                            Text("Salir", color = MaterialTheme.colorScheme.primary)
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
                 )
             },
-            snackbarHost = {},
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = { openCreateDialog() },
-                    text = { Text(text = "Nuevo trámite") },
+                    text = { Text(text = "Nuevo trámite", fontWeight = FontWeight.SemiBold) },
                     icon = {
                         RemoteIcon(
                             iconSpec = RemoteIconSpec.Add,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = colorScheme.onPrimary
                         )
                     },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.border(
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        shape = MaterialTheme.shapes.large
-                    )
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 12.dp
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         ) { innerPadding ->
@@ -250,52 +257,47 @@ fun SecretaryProceduresScreen(
                 contentPadding = PaddingValues(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item {
-                    Text(
-                        text = "Hola, ${usuario.nombre}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Gestiona los trámites activos y suspendidos desde esta sección.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                // Stats Cards - Resumen mejorado
                 item {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                        EduCoreStatCard(
                             modifier = Modifier.weight(1f),
-                            label = { Text("Buscar trámites") },
-                            leadingIcon = {
-                                RemoteIcon(
-                                    iconSpec = RemoteIconSpec.Search,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            singleLine = true
+                            title = "Activos",
+                            value = tramites.count { it.activo == 1 }.toString(),
+                            iconSpec = RemoteIconSpec.Check,
+                            accentColor = colorScheme.secondary
                         )
-                        Button(
-                            onClick = { loadTramites() },
-                            modifier = Modifier.align(Alignment.CenterVertically),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            RemoteIcon(
-                                iconSpec = RemoteIconSpec.Search,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Text(text = "Buscar", modifier = Modifier.padding(start = 4.dp))
-                        }
+                        EduCoreStatCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Suspendidos",
+                            value = tramites.count { it.activo == 0 }.toString(),
+                            iconSpec = RemoteIconSpec.Pause,
+                            accentColor = colorScheme.tertiary
+                        )
+                    }
+                    if (isLoading) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
+
+                // Búsqueda
+                item {
+                    EduCoreSearchField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = "Buscar trámites...",
+                        onSearch = { loadTramites() }
+                    )
+                }
+
+                // Filtros
                 item {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -318,72 +320,25 @@ fun SecretaryProceduresScreen(
                         }
                     }
                 }
-                item {
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Resumen",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "Activos: ${tramites.count { it.activo == 1 }}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = "Suspendidos: ${tramites.count { it.activo == 0 }}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            if (isLoading) {
-                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                            }
-                        }
-                    }
-                }
 
                 if (!initialLoadDone && isLoading) {
                     item {
                         Text(
                             text = "Cargando trámites...",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
                 if (filteredTramites.isEmpty()) {
                     item {
-                        Surface(
+                        EduCoreEmptyCard(
                             modifier = Modifier.fillMaxWidth(),
-                            tonalElevation = 2.dp,
-                            shape = MaterialTheme.shapes.large
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                RemoteIcon(
-                                    iconSpec = RemoteIconSpec.List,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = if (initialLoadDone) "No se encontraron trámites" else "Sin datos todavía",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    textAlign = TextAlign.Center
-                                )
-                                Text(
-                                    text = "Ajusta la búsqueda o crea un nuevo trámite.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
+                            iconSpec = RemoteIconSpec.List,
+                            title = if (initialLoadDone) "No se encontraron trámites" else "Sin datos todavía",
+                            description = "Ajusta la búsqueda o crea un nuevo trámite."
+                        )
                     }
                 } else {
                     items(
@@ -402,78 +357,66 @@ fun SecretaryProceduresScreen(
             }
         }
 
-        OverlaySnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.fillMaxWidth()
+        // Host de notificaciones
+        EduCoreNotificationHost(
+            state = notificationState,
+            modifier = Modifier.align(Alignment.TopCenter)
         )
     }
 
-    if (showEditor) {
-        AlertDialog(
-            onDismissRequest = { if (!isSaving) showEditor = false },
-            title = { Text(text = if (editingId == null) "Registrar trámite" else "Editar trámite") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = nombre,
-                        onValueChange = { nombre = it },
-                        label = { Text("Nombre del trámite") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = descripcion,
-                        onValueChange = { descripcion = it },
-                        label = { Text("Descripción") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2
-                    )
-                    OutlinedTextField(
-                        value = duracion,
-                        onValueChange = { input -> duracion = input.filter { it.isDigit() } },
-                        label = { Text("Duración estimada (min)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { saveTramite() }, enabled = !isSaving) {
-                    Text(text = if (editingId == null) "Guardar" else "Actualizar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { if (!isSaving) showEditor = false }, enabled = !isSaving) {
-                    Text(text = "Cancelar")
-                }
-            }
-        )
+    // Diálogo de edición/creación de trámites
+    EduCoreDialog(
+        visible = showEditor,
+        onDismiss = { if (!isSaving) showEditor = false },
+        title = if (editingId == null) "Registrar trámite" else "Editar trámite",
+        message = "Completa los datos del trámite",
+        type = DialogType.INFO,
+        confirmText = if (editingId == null) "Guardar" else "Actualizar",
+        cancelText = "Cancelar",
+        onConfirm = { saveTramite() },
+        onCancel = { if (!isSaving) showEditor = false },
+        isLoading = isSaving
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            EduCoreTextField(
+                value = nombre,
+                onValueChange = { nombre = it },
+                label = "Nombre del trámite",
+                modifier = Modifier.fillMaxWidth()
+            )
+            EduCoreTextField(
+                value = descripcion,
+                onValueChange = { descripcion = it },
+                label = "Descripción",
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = false
+            )
+            EduCoreTextField(
+                value = duracion,
+                onValueChange = { input -> duracion = input.filter { it.isDigit() } },
+                label = "Duración estimada (min)",
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 
-    tramitePendingDelete?.let { tramite ->
-        AlertDialog(
-            onDismissRequest = { tramitePendingDelete = null },
-            title = { Text(text = "Eliminar trámite") },
-            text = {
-                Text(
-                    text = "¿Seguro que deseas eliminar \"${tramite.nombre}\"? Esta acción no se puede deshacer.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    updateEstado(tramite, 2)
-                    tramitePendingDelete = null
-                }) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { tramitePendingDelete = null }) {
-                    Text("Cancelar")
-                }
+    // Diálogo de confirmación de eliminación
+    EduCoreConfirmDialog(
+        visible = tramitePendingDelete != null,
+        onDismiss = { tramitePendingDelete = null },
+        title = "Eliminar trámite",
+        message = "¿Seguro que deseas eliminar \"${tramitePendingDelete?.nombre}\"? Esta acción no se puede deshacer.",
+        onConfirm = {
+            tramitePendingDelete?.let { tramite ->
+                updateEstado(tramite, 2)
             }
-        )
-    }
+            tramitePendingDelete = null
+        },
+        confirmText = "Eliminar",
+        cancelText = "Cancelar",
+        isDestructive = true
+    )
 }
 
 @Composable
@@ -484,107 +427,128 @@ private fun TramiteCard(
     onDelete: () -> Unit,
     isUpdating: Boolean
 ) {
-    Surface(
+    val colorScheme = MaterialTheme.colorScheme
+    val isActive = tramite.activo == 1
+
+    EduCoreCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 2.dp
+        variant = CardVariant.ELEVATED
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Row(
+            verticalAlignment = Alignment.Top,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = tramite.nombre,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (tramite.descripcion.isNotBlank()) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = tramite.descripcion,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = tramite.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                RemoteIcon(
-                    iconSpec = RemoteIconSpec.Schedule,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Duración estimada: ${tramite.duracionEstimadaMin} min",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                EstadoBadge(tramite = tramite)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = { onUpdateEstado(1) },
-                    modifier = Modifier.weight(1f),
-                    enabled = tramite.activo != 1 && !isUpdating,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                if (tramite.descripcion.isNotBlank()) {
+                    Text(
+                        text = tramite.descripcion,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
-                ) {
-                    RemoteIcon(
-                        iconSpec = RemoteIconSpec.Play,
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(text = "Activar", modifier = Modifier.padding(start = 4.dp))
                 }
-                Button(
+            }
+            EstadoBadge(tramite = tramite)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            RemoteIcon(
+                iconSpec = RemoteIconSpec.Schedule,
+                tint = colorScheme.onSurfaceVariant,
+                size = 18.dp
+            )
+            Text(
+                text = "${tramite.duracionEstimadaMin} min estimados",
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Botones de acción - Diseño mejorado
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Botón Activar/Suspender (principal)
+            if (isActive) {
+                OutlinedButton(
                     onClick = { onUpdateEstado(0) },
                     modifier = Modifier.weight(1f),
-                    enabled = tramite.activo != 0 && !isUpdating,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary,
-                        contentColor = MaterialTheme.colorScheme.onTertiary
-                    )
+                    enabled = !isUpdating,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = colorScheme.tertiary
+                    ),
+                    border = BorderStroke(1.dp, colorScheme.tertiary.copy(alpha = 0.5f))
                 ) {
                     RemoteIcon(
                         iconSpec = RemoteIconSpec.Pause,
-                        tint = MaterialTheme.colorScheme.onTertiary
+                        tint = colorScheme.tertiary,
+                        size = 18.dp
                     )
-                    Text(text = "Suspender", modifier = Modifier.padding(start = 4.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "Suspender")
                 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                FilledTonalButton(
-                    onClick = { onEdit(tramite) },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isUpdating
-                ) {
-                    RemoteIcon(
-                        iconSpec = RemoteIconSpec.Edit,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Text(text = "Editar", modifier = Modifier.padding(start = 4.dp))
-                }
+            } else {
                 Button(
-                    onClick = onDelete,
+                    onClick = { onUpdateEstado(1) },
                     modifier = Modifier.weight(1f),
                     enabled = !isUpdating,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
+                        containerColor = colorScheme.secondary,
+                        contentColor = colorScheme.onSecondary
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     RemoteIcon(
-                        iconSpec = RemoteIconSpec.Delete,
-                        tint = MaterialTheme.colorScheme.onError
+                        iconSpec = RemoteIconSpec.Play,
+                        tint = colorScheme.onSecondary,
+                        size = 18.dp
                     )
-                    Text(text = "Eliminar", modifier = Modifier.padding(start = 4.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "Activar")
                 }
+            }
+
+            // Botón Editar
+            FilledTonalButton(
+                onClick = { onEdit(tramite) },
+                enabled = !isUpdating,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                RemoteIcon(
+                    iconSpec = RemoteIconSpec.Edit,
+                    tint = colorScheme.onSecondaryContainer,
+                    size = 18.dp
+                )
+            }
+
+            // Botón Eliminar
+            OutlinedButton(
+                onClick = onDelete,
+                enabled = !isUpdating,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = colorScheme.error
+                ),
+                border = BorderStroke(1.dp, colorScheme.error.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                RemoteIcon(
+                    iconSpec = RemoteIconSpec.Delete,
+                    tint = colorScheme.error,
+                    size = 18.dp
+                )
             }
         }
     }
@@ -592,34 +556,15 @@ private fun TramiteCard(
 
 @Composable
 private fun EstadoBadge(tramite: TipoTramite) {
-    val (label, containerColor, textColor) = when (tramite.activo) {
-        1 -> Triple(
-            "Activo",
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
-        0 -> Triple(
-            "Suspendido",
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer
-        )
-        else -> Triple(
-            "Eliminado",
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.onErrorContainer
-        )
+    val (label, statusType) = when (tramite.activo) {
+        1 -> "Activo" to StatusType.SUCCESS
+        0 -> "Suspendido" to StatusType.WARNING
+        else -> "Eliminado" to StatusType.ERROR
     }
-    Surface(
-        color = containerColor,
-        contentColor = textColor,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelMedium
-        )
-    }
+    EduCoreStatusBadge(
+        text = label,
+        status = statusType
+    )
 }
 
 @Composable
@@ -642,29 +587,6 @@ private fun FilterToggleButton(
             modifier = modifier
         ) {
             Text(text = label, modifier = Modifier.padding(start = 4.dp))
-        }
-    }
-}
-
-@Composable
-private fun OverlaySnackbarHost(
-    hostState: SnackbarHostState,
-    modifier: Modifier = Modifier
-) {
-    SnackbarHost(hostState = hostState) { data ->
-        Popup(
-            alignment = Alignment.BottomCenter,
-            properties = PopupProperties(
-                focusable = false,
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false,
-                excludeFromSystemGesture = false
-            )
-        ) {
-            Snackbar(
-                snackbarData = data,
-                modifier = modifier.padding(horizontal = 16.dp, vertical = 32.dp)
-            )
         }
     }
 }

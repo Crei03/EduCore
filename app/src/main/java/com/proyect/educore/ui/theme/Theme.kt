@@ -9,11 +9,11 @@ import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
     primary = BluePrimaryLight,
-    onPrimary = BluePrimaryDark,
+    onPrimary = White,
     primaryContainer = BluePrimaryDark,
     onPrimaryContainer = White,
     secondary = TealSecondaryLight,
-    onSecondary = TealSecondaryDark,
+    onSecondary = White,
     secondaryContainer = TealSecondaryDark,
     onSecondaryContainer = White,
     tertiary = OrangeTertiaryLight,

@@ -21,37 +21,27 @@ fun HomeRoute(
 ) {
     when {
         usuario.isSecretary() -> {
-            var section by rememberSaveable { mutableStateOf(SecretarySection.Home) }
-            when (section) {
-                SecretarySection.Home -> SecretaryHomeScreen(
-                    usuario = usuario,
-                    onNavigateToProcedures = { section = SecretarySection.Procedures },
-                    onNavigateToQueue = { section = SecretarySection.Queue },
-                    onLogout = onLogout
-                )
-                SecretarySection.Queue -> SecretaryQueueScreen(
-                    onNavigateBack = { section = SecretarySection.Home },
-                    onLogout = onLogout
-                )
-                SecretarySection.Procedures -> SecretaryProceduresScreen(
-                    usuario = usuario,
-                    onNavigateBack = { section = SecretarySection.Home },
-                    onLogout = onLogout
-                )
-            }
+            SecretaryDashboard(
+                usuario = usuario,
+                onLogout = onLogout
+            )
         }
-        usuario.isStudent() -> StudentHomeScreen(
-            estudianteId = usuario.id.toLong(),
-            onLogout = onLogout,
-            onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
-            onNavigateToHistorial = onNavigateToHistorial
-        )
-        else -> StudentHomeScreen(
-            estudianteId = usuario.id.toLong(),
-            onLogout = onLogout,
-            onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
-            onNavigateToHistorial = onNavigateToHistorial
-        )
+        usuario.isStudent() -> {
+            StudentDashboard(
+                usuario = usuario,
+                onLogout = onLogout,
+                onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
+                onNavigateToHistorial = onNavigateToHistorial
+            )
+        }
+        else -> {
+            StudentDashboard(
+                usuario = usuario,
+                onLogout = onLogout,
+                onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
+                onNavigateToHistorial = onNavigateToHistorial
+            )
+        }
     }
 }
 
@@ -73,4 +63,48 @@ private enum class SecretarySection {
     Home,
     Queue,
     Procedures
+}
+
+@Composable
+private fun StudentDashboard(
+    usuario: Usuario,
+    onLogout: () -> Unit,
+    onNavigateToSolicitarTurno: () -> Unit,
+    onNavigateToHistorial: () -> Unit
+) {
+    // Usamos directamente StudentHomeScreen que ya tiene su propio drawer integrado
+    StudentHomeScreen(
+        estudianteId = usuario.id.toLong(),
+        estudianteNombre = usuario.nombre,
+        onLogout = onLogout,
+        onNavigateToSolicitarTurno = onNavigateToSolicitarTurno,
+        onNavigateToHistorial = onNavigateToHistorial
+    )
+}
+
+@Composable
+private fun SecretaryDashboard(
+    usuario: Usuario,
+    onLogout: () -> Unit
+) {
+    var section by rememberSaveable { mutableStateOf(SecretarySection.Home) }
+
+    // Cada pantalla tiene su propia AppBar/navegación y usa el drawer integrado
+    when (section) {
+        SecretarySection.Home -> SecretaryHomeScreen(
+            usuario = usuario,
+            onNavigateToProcedures = { section = SecretarySection.Procedures },
+            onNavigateToQueue = { section = SecretarySection.Queue },
+            onLogout = onLogout
+        )
+        SecretarySection.Queue -> SecretaryQueueScreen(
+            onNavigateBack = { section = SecretarySection.Home },
+            onLogout = onLogout
+        )
+        SecretarySection.Procedures -> SecretaryProceduresScreen(
+            usuario = usuario,
+            onNavigateBack = { section = SecretarySection.Home },
+            onLogout = onLogout
+        )
+    }
 }

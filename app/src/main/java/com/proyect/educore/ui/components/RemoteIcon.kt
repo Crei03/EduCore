@@ -19,13 +19,15 @@ import coil.request.ImageRequest
 
 enum class RemoteIconSpec(
     internal val path: String,
-    val contentDescription: String
+    val defaultContentDescription: String
 ) {
     Home("home", "Icono inicio"),
     Person("person", "Icono usuario"),
     PersonAdd("person_add", "Icono crear usuario"),
     Login("login", "Icono iniciar sesión"),
     Logout("logout", "Icono cerrar sesión"),
+    ExitToApp("meeting_room", "Icono salir"),
+    Menu("menu", "Icono menú"),
     Email("mail", "Icono correo"),
     Lock("lock", "Icono candado"),
     Visibility("visibility", "Icono mostrar"),
@@ -41,7 +43,30 @@ enum class RemoteIconSpec(
     Pause("pause_circle", "Icono suspender"),
     Schedule("schedule", "Icono tiempo"),
     Search("search", "Icono buscar"),
-    Filter("filter_list", "Icono filtrar");
+    Filter("filter_list", "Icono filtrar"),
+    Check("check_circle", "Icono completado"),
+    CheckOutlined("done", "Icono verificado"),
+    Close("close", "Icono cerrar"),
+    Cancel("cancel", "Icono cancelar"),
+    Block("block", "Icono bloquear"),
+    Info("info", "Icono información"),
+    Warning("warning", "Icono advertencia"),
+    Error("error", "Icono error"),
+    Queue("format_list_numbered", "Icono cola"),
+    History("history", "Icono historial"),
+    Description("description", "Icono documento"),
+    Notifications("notifications", "Icono notificaciones"),
+    Settings("settings", "Icono configuración"),
+    Refresh("refresh", "Icono actualizar"),
+    MoreVert("more_vert", "Icono más opciones"),
+    Star("star", "Icono estrella"),
+    Help("help", "Icono ayuda"),
+    PersonOutline("person_outline", "Icono persona"),
+    Assignment("assignment", "Icono asignación"),
+    Dashboard("dashboard", "Icono panel"),
+    AccessTime("access_time", "Icono reloj"),
+    HourglassEmpty("hourglass_empty", "Icono espera"),
+    Groups("groups", "Icono grupos");
 
     val url: String = "https://fonts.gstatic.com/s/i/materialiconsoutlined/$path/v1/24px.svg"
 }
@@ -51,7 +76,8 @@ fun RemoteIcon(
     iconSpec: RemoteIconSpec,
     modifier: Modifier = Modifier,
     tint: Color? = MaterialTheme.colorScheme.onSurface,
-    size: Dp = 24.dp
+    size: Dp = 24.dp,
+    contentDescription: String? = iconSpec.defaultContentDescription
 ) {
     val context = LocalContext.current
     val imageLoader = remember {
@@ -67,7 +93,7 @@ fun RemoteIcon(
             .data(iconSpec.url)
             .crossfade(true)
             .build(),
-        contentDescription = iconSpec.contentDescription,
+        contentDescription = contentDescription,
         modifier = modifier
             .size(size)
             .clip(MaterialTheme.shapes.extraSmall),

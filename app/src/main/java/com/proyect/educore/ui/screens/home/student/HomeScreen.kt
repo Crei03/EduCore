@@ -1,7 +1,8 @@
 package com.proyect.educore.ui.screens.home.student
 
-import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,23 +13,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +38,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,10 +48,14 @@ import com.proyect.educore.model.Turno
 import com.proyect.educore.model.repository.TurnoRepository
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
-import com.proyect.educore.ui.theme.BluePrimary
+import com.proyect.educore.ui.components.cards.CardVariant
+import com.proyect.educore.ui.components.cards.EduCoreCard
+import com.proyect.educore.ui.components.cards.EduCoreFeatureCard
+import com.proyect.educore.ui.components.drawer.DrawerMenuItem
+import com.proyect.educore.ui.components.drawer.EduCoreDrawer
+import com.proyect.educore.ui.components.notification.EduCoreNotificationHost
+import com.proyect.educore.ui.components.notification.rememberNotificationState
 import com.proyect.educore.ui.theme.EduCoreTheme
-import com.proyect.educore.ui.theme.NeutralSurfaceVariantLight
-import com.proyect.educore.ui.theme.Warning
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -59,14 +64,16 @@ import kotlinx.coroutines.launch
 fun StudentHomeScreen(
     modifier: Modifier = Modifier,
     estudianteId: Long,
+    estudianteNombre: String = "Estudiante",
     onLogout: () -> Unit,
     onNavigateToSolicitarTurno: () -> Unit = {},
     onNavigateToHistorial: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val notificationState = rememberNotificationState()
     val turnoRepository = remember { TurnoRepository() }
     val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val colorScheme = MaterialTheme.colorScheme
 
     var turnoActual by remember { mutableStateOf<Turno?>(null) }
     var posicion by remember { mutableStateOf<Int?>(null) }
@@ -103,126 +110,167 @@ fun StudentHomeScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(text = "Trámites escolares") },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
-            )
+    // Items del menú para el drawer
+    val menuItems = listOf(
+        DrawerMenuItem("home", "Inicio", RemoteIconSpec.Home),
+        DrawerMenuItem("history", "Mis turnos", RemoteIconSpec.History)
+    )
+
+    EduCoreDrawer(
+        drawerState = drawerState,
+        userName = estudianteNombre,
+        userRole = "Estudiante",
+        menuItems = menuItems,
+        selectedItemId = "home",
+        onItemClick = { item ->
+            scope.launch {
+                drawerState.close()
+                when (item.id) {
+                    "history" -> onNavigateToHistorial()
+                }
+            }
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = { Text("Solicitar turno") },
-                icon = {
-                    RemoteIcon(
-                        iconSpec = RemoteIconSpec.ArrowForward,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                },
-                onClick = onNavigateToSolicitarTurno
-            )
+        onLogout = {
+            scope.launch {
+                drawerState.close()
+                notificationState.showInfo("Sesión finalizada")
+                onLogout()
+            }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (isLoadingTurno) {
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                        Text("Calculando tu tiempo de espera...")
-                    }
-                }
-            } else if (turnoActual != null) {
-                EsperaTurnoCard(
-                    turno = turnoActual!!,
-                    posicion = posicion,
-                    duracionEstimada = duracionEstimada,
-                    estimadoInicial = estimadoInicial,
-                    restante = restante
-                )
-            }
-
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    RemoteIcon(
-                        iconSpec = RemoteIconSpec.Home,
-                        size = 36.dp,
-                        tint = MaterialTheme.colorScheme.primary
+    ) {
+        Box(modifier = modifier.fillMaxSize()) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        title = { Text(text = "Trámites escolares") },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                RemoteIcon(
+                                    iconSpec = RemoteIconSpec.Menu,
+                                    tint = colorScheme.onSurface
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Bienvenido a EduCore",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Text(
-                        text = "Consulta el estado de tus solicitudes o inicia un nuevo trámite cuando lo necesites.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-            }
-
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Mis turnos",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Consulta el estado de tus solicitudes de turno.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    Button(
-                        onClick = onNavigateToHistorial,
-                        modifier = Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Text("Ver historial")
-                    }
-                }
-            }
-
-            OutlinedButton(
-                onClick = {
-                    Toast
-                        .makeText(context, "Sesión finalizada", Toast.LENGTH_SHORT)
-                        .show()
-                    onLogout()
                 },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                RemoteIcon(
-                    iconSpec = RemoteIconSpec.Logout,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Cerrar sesión",
-                    textAlign = TextAlign.Center
-                )
+                floatingActionButton = {
+                    ExtendedFloatingActionButton(
+                        text = { 
+                            Text(
+                                "Solicitar turno",
+                                fontWeight = FontWeight.SemiBold
+                            ) 
+                        },
+                        icon = {
+                            RemoteIcon(
+                                iconSpec = RemoteIconSpec.Add,
+                                tint = colorScheme.onPrimary
+                            )
+                        },
+                        onClick = onNavigateToSolicitarTurno,
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.onPrimary,
+                        elevation = FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 12.dp
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 1. Card de bienvenida destacada (primero)
+                    EduCoreCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CardVariant.GRADIENT
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(colorScheme.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                RemoteIcon(
+                                    iconSpec = RemoteIconSpec.School,
+                                    size = 28.dp,
+                                    tint = colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "¡Hola, $estudianteNombre!",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.primary
+                                )
+                                Text(
+                                    text = "Consulta tus turnos o solicita uno nuevo cuando lo necesites.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. Card de turno actual (segundo)
+                    if (isLoadingTurno) {
+                        EduCoreCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = CardVariant.FILLED
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = colorScheme.primary
+                                )
+                                Text("Calculando tu tiempo de espera...")
+                            }
+                        }
+                    } else if (turnoActual != null) {
+                        EsperaTurnoCard(
+                            turno = turnoActual!!,
+                            posicion = posicion,
+                            duracionEstimada = duracionEstimada,
+                            estimadoInicial = estimadoInicial,
+                            restante = restante
+                        )
+                    }
+
+                    // 3. Card de historial (tercero)
+                    EduCoreFeatureCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = "Mis turnos",
+                        description = "Consulta el historial y estado de tus solicitudes.",
+                        iconSpec = RemoteIconSpec.History,
+                        onClick = onNavigateToHistorial,
+                        accentColor = colorScheme.secondary
+                    )
+                }
             }
+
+            // Host de notificaciones
+            EduCoreNotificationHost(
+                state = notificationState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -233,6 +281,7 @@ private fun StudentHomeScreenPreview() {
     EduCoreTheme {
         StudentHomeScreen(
             estudianteId = 1L,
+            estudianteNombre = "Carlos",
             onLogout = {}
         )
     }
@@ -250,60 +299,76 @@ private fun EsperaTurnoCard(
     val restanteSeguro = restante ?: total
     val progreso = if (total > 0) 1f - (restanteSeguro.toFloat() / total.toFloat()) else 0f
     val mensajeAlerta = progreso >= 0.8f
+    val enAtencion = turno.estado.equals("ATENDIENDO", ignoreCase = true)
+    val progressColor = when {
+        enAtencion -> MaterialTheme.colorScheme.secondary
+        progreso >= 0.75f -> MaterialTheme.colorScheme.secondary
+        progreso >= 0.35f -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.tertiary
+    }
+    val colorScheme = MaterialTheme.colorScheme
 
-    Card(
+    EduCoreCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large
+        variant = CardVariant.ELEVATED
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = "Tu turno en curso",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Código: ${turno.codigoTurno} • Estado: ${turno.estado.replace('_', ' ')}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Text(
+            text = "Tu turno en curso",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "Código: ${turno.codigoTurno} • Estado: ${turno.estado.replace('_', ' ')}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colorScheme.onSurfaceVariant
+        )
 
-            LinearProgressIndicator(
-                progress = progreso.coerceIn(0f, 1f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp),
-                trackColor = NeutralSurfaceVariantLight,
-                color = BluePrimary
-            )
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Posición: ${posicion ?: "--"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                val minutosRestantes = restanteSeguro
-                val esperaTexto = if (minutosRestantes > 0) "${minutosRestantes} min" else "Pronto"
-                Text(
-                    text = "Espera aprox.: $esperaTexto",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+        LinearProgressIndicator(
+            progress = { progreso.coerceIn(0f, 1f) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(5.dp)),
+            trackColor = colorScheme.surfaceVariant,
+            color = progressColor
+        )
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
-                text = if (mensajeAlerta) {
-                    "Tu turno se acerca, mantente atenta/o."
-                } else {
-                    "Actualizamos este tiempo en tiempo real conforme avanza la cola."
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (mensajeAlerta) Warning else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = if (mensajeAlerta) FontWeight.SemiBold else FontWeight.Normal
+                text = "Posición: ${posicion ?: "--"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.onSurfaceVariant
+            )
+            val minutosRestantes = restanteSeguro
+            val esperaTexto = if (minutosRestantes > 0) "${minutosRestantes} min" else "Pronto"
+            Text(
+                text = "Espera aprox.: $esperaTexto",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = if (mensajeAlerta) {
+                "Tu turno se acerca, mantente atenta/o."
+            } else {
+                "Actualizamos este tiempo en tiempo real conforme avanza la cola."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (mensajeAlerta) colorScheme.tertiary else colorScheme.onSurfaceVariant,
+            fontWeight = if (mensajeAlerta) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }

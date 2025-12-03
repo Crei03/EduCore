@@ -21,7 +21,7 @@ fun envOrDefault(key: String, default: String): String {
     val fromFile = envProps.getProperty(key)
     return when {
         !fromEnv.isNullOrBlank() -> fromEnv
-        !fromFile.isNullOrBlank() -> fromFile
+        !fromFile.isNullOrBlank() ->  fromFile
         else -> default
     }
 }
