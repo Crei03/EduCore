@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Secretarios - EduCore</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --blue-primary: #0055D4;
+            --blue-primary-dark: #003087;
+            --blue-primary-light: #4A7BFF;
+            --teal-secondary: #008E8C;
+            --orange-tertiary: #FFB648;
+            --neutral-background: #F5F7FB;
+            --neutral-surface: #FFFFFF;
+            --neutral-surface-variant: #E0E6F0;
+            --neutral-outline: #B4BDC9;
+            --neutral-on-surface-variant: #434C5A;
+            --error: #BA1A1A;
+            --success: #2E7D32;
+            --white: #FFFFFF;
+            --black: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--neutral-background);
+            color: var(--black);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--blue-primary);
+            color: var(--white);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .header .material-icons {
+            font-size: 2rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Card */
+        .card {
+            background-color: var(--neutral-surface);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--neutral-surface-variant);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--blue-primary-dark);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--blue-primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--blue-primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--neutral-surface-variant);
+            color: var(--neutral-on-surface-variant);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--neutral-outline);
+        }
+
+        .btn-danger {
+            background-color: var(--error);
+            color: var(--white);
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 50%;
+            min-width: 40px;
+            min-height: 40px;
+            justify-content: center;
+        }
+
+        .btn-icon .material-icons {
+            font-size: 1.25rem;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--neutral-on-surface-variant);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--neutral-outline);
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 0 3px rgba(0, 85, 212, 0.15);
+        }
+
+        .form-input.error {
+            border-color: var(--error);
+        }
+
+        .form-error {
+            font-size: 0.75rem;
+            color: var(--error);
+            margin-top: 0.25rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--neutral-surface-variant);
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--neutral-surface-variant);
+        }
+
+        th {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--neutral-on-surface-variant);
+            background-color: var(--neutral-surface-variant);
+        }
+
+        th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        td {
+            font-size: 0.875rem;
+        }
+
+        tr:hover {
+            background-color: var(--neutral-background);
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: var(--neutral-surface);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--neutral-surface-variant);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--blue-primary-dark);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--neutral-surface-variant);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 2000;
+        }
+
+        .toast {
+            background-color: var(--neutral-surface);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error);
+        }
+
+        .toast .material-icons {
+            font-size: 1.5rem;
+        }
+
+        .toast.success .material-icons {
+            color: var(--success);
+        }
+
+        .toast.error .material-icons {
+            color: var(--error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--neutral-on-surface-variant);
+        }
+
+        .empty-state .material-icons {
+            font-size: 4rem;
+            color: var(--neutral-outline);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--neutral-surface-variant);
+            border-top-color: var(--blue-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <span class="material-icons">admin_panel_settings</span>
+        <h1>Gestión de Secretarios</h1>
+    </header>
+
+    <main class="container">
+        <!-- Lista de Secretarios -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Secretarios Registrados</h2>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <span class="material-icons">add</span>
+                    Nuevo Secretario
+                </button>
+            </div>
+            
+            <div id="tableContainer" class="table-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Crear/Editar -->
+    <div id="formModal" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nuevo Secretario</h3>
+                <button class="btn btn-icon btn-secondary" onclick="closeModal()">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <form id="secretaryForm" onsubmit="handleSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="secretaryId" name="id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="nombre">Nombre *</label>
+                            <input type="text" class="form-input" id="nombre" name="nombre" required maxlength="80">
+                            <span class="form-error" id="nombreError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="apellido">Apellido *</label>
+                            <input type="text" class="form-input" id="apellido" name="apellido" required maxlength="80">
+                            <span class="form-error" id="apellidoError"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="email">Correo Institucional *</label>
+                        <input type="email" class="form-input" id="email" name="email" required maxlength="120" placeholder="ejemplo@institucion.edu">
+                        <span class="form-error" id="emailError"></span>
+                    </div>
+                    
+                    <div id="passwordSection">
+                        <div class="form-group">
+                            <label class="form-label" for="password">Contraseña *</label>
+                            <input type="password" class="form-input" id="password" name="password" minlength="6">
+                            <span class="form-error" id="passwordError"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">Confirmar Contraseña *</label>
+                            <input type="password" class="form-input" id="confirmPassword" name="confirmPassword" minlength="6">
+                            <span class="form-error" id="confirmPasswordError"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="material-icons">save</span>
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Confirmar Eliminación -->
+    <div id="deleteModal" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Eliminación</h3>
+                <button class="btn btn-icon btn-secondary" onclick="closeDeleteModal()">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar a <strong id="deleteSecretaryName"></strong>?</p>
+                <p style="margin-top: 0.5rem; color: var(--neutral-on-surface-variant); font-size: 0.875rem;">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
+                    <span class="material-icons">delete</span>
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        const API_URL = '../backend/Secretarios.php';
+        let secretaries = [];
+        let editingId = null;
+        let deletingId = null;
+
+        // Cargar secretarios al iniciar
+        document.addEventListener('DOMContentLoaded', loadSecretaries);
+
+        async function loadSecretaries() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                if (data.success) {
+                    secretaries = data.data || [];
+                    renderTable();
+                } else {
+                    showToast(data.message || 'Error al cargar los datos', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión con el servidor', 'error');
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const container = document.getElementById('tableContainer');
+            
+            if (secretaries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-icons">person_off</span>
+                        <p>No hay secretarios registrados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Correo</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${secretaries.map(s => `
+                            <tr>
+                                <td>${s.id}</td>
+                                <td>${escapeHtml(s.nombre)}</td>
+                                <td>${escapeHtml(s.apellido || '-')}</td>
+                                <td>${escapeHtml(s.email)}</td>
+                                <td>${formatDate(s.creado_en)}</td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <button class="btn btn-icon btn-secondary" onclick="openEditModal(${s.id})" title="Editar">
+                                            <span class="material-icons">edit</span>
+                                        </button>
+                                        <button class="btn btn-icon btn-danger" onclick="openDeleteModal(${s.id}, '${escapeHtml(s.nombre)} ${escapeHtml(s.apellido || '')}')" title="Eliminar">
+                                            <span class="material-icons">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function openCreateModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Nuevo Secretario';
+            document.getElementById('secretaryForm').reset();
+            document.getElementById('passwordSection').style.display = 'block';
+            document.getElementById('password').required = true;
+            document.getElementById('confirmPassword').required = true;
+            clearErrors();
+            document.getElementById('formModal').classList.add('active');
+        }
+
+        function openEditModal(id) {
+            const secretary = secretaries.find(s => s.id === id);
+            if (!secretary) return;
+
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Editar Secretario';
+            document.getElementById('secretaryId').value = id;
+            document.getElementById('nombre').value = secretary.nombre;
+            document.getElementById('apellido').value = secretary.apellido || '';
+            document.getElementById('email').value = secretary.email;
+            document.getElementById('password').value = '';
+            document.getElementById('confirmPassword').value = '';
+            
+            // En edición, la contraseña es opcional
+            document.getElementById('passwordSection').style.display = 'block';
+            document.getElementById('password').required = false;
+            document.getElementById('confirmPassword').required = false;
+            
+            clearErrors();
+            document.getElementById('formModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('formModal').classList.remove('active');
+            editingId = null;
+        }
+
+        function openDeleteModal(id, name) {
+            deletingId = id;
+            document.getElementById('deleteSecretaryName').textContent = name;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+            deletingId = null;
+        }
+
+        function closeModalOnOverlay(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                closeModal();
+                closeDeleteModal();
+            }
+        }
+
+        function clearErrors() {
+            document.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+            document.querySelectorAll('.form-input').forEach(el => el.classList.remove('error'));
+        }
+
+        function showError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorEl = document.getElementById(fieldId + 'Error');
+            if (field) field.classList.add('error');
+            if (errorEl) errorEl.textContent = message;
+        }
+
+        function validateForm() {
+            clearErrors();
+            let isValid = true;
+
+            const nombre = document.getElementById('nombre').value.trim();
+            const apellido = document.getElementById('apellido').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!nombre) {
+                showError('nombre', 'El nombre es requerido');
+                isValid = false;
+            }
+
+            if (!apellido) {
+                showError('apellido', 'El apellido es requerido');
+                isValid = false;
+            }
+
+            if (!email) {
+                showError('email', 'El correo es requerido');
+                isValid = false;
+            } else if (!isValidEmail(email)) {
+                showError('email', 'Ingrese un correo válido');
+                isValid = false;
+            }
+
+            // Validar contraseña solo si es nuevo o si se ingresó alguna
+            const isNewSecretary = !editingId;
+            const hasPassword = password.length > 0;
+
+            if (isNewSecretary && !hasPassword) {
+                showError('password', 'La contraseña es requerida');
+                isValid = false;
+            }
+
+            if (hasPassword) {
+                if (password.length < 6) {
+                    showError('password', 'La contraseña debe tener al menos 6 caracteres');
+                    isValid = false;
+                }
+
+                if (password !== confirmPassword) {
+                    showError('confirmPassword', 'Las contraseñas no coinciden');
+                    isValid = false;
+                }
+            }
+
+            return isValid;
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            if (!validateForm()) return;
+
+            const formData = {
+                nombre: document.getElementById('nombre').value.trim(),
+                apellido: document.getElementById('apellido').value.trim(),
+                email: document.getElementById('email').value.trim()
+            };
+
+            const password = document.getElementById('password').value;
+            if (password) {
+                formData.password = password;
+            }
+
+            try {
+                const url = editingId ? `${API_URL}?id=${editingId}` : API_URL;
+                const method = editingId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(editingId ? 'Secretario actualizado correctamente' : 'Secretario creado correctamente', 'success');
+                    closeModal();
+                    loadSecretaries();
+                } else {
+                    showToast(data.message || 'Error al guardar', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión con el servidor', 'error');
+            }
+        }
+
+        async function confirmDelete() {
+            if (!deletingId) return;
+
+            try {
+                const response = await fetch(`${API_URL}?id=${deletingId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Secretario eliminado correctamente', 'success');
+                    closeDeleteModal();
+                    loadSecretaries();
+                } else {
+                    showToast(data.message || 'Error al eliminar', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión con el servidor', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span class="material-icons">${type === 'success' ? 'check_circle' : 'error'}</span>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+    </script>
+</body>
+</html>
