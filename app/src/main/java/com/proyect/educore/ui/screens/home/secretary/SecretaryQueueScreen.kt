@@ -336,11 +336,6 @@ fun SecretaryQueueScreen(
                             Text("Volver", color = MaterialTheme.colorScheme.primary)
                         }
                     },
-                    actions = {
-                        TextButton(onClick = onLogout) {
-                            Text("Salir", color = MaterialTheme.colorScheme.primary)
-                        }
-                    },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
                 )
             }

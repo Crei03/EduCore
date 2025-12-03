@@ -109,13 +109,13 @@ class TurnoRepository {
      * @param estudianteId ID del estudiante
      * @param tipoTramiteId ID del tipo de trámite
      * @param observaciones Observaciones opcionales del turno
-     * @return El turno creado o null si hay error
+     * @return Resultado con el turno creado o el mensaje de error
      */
     suspend fun crearTurno(
         estudianteId: Long,
         tipoTramiteId: Int,
         observaciones: String = ""
-    ): Turno? {
+    ): TurnoOperacionResult {
         return try {
             println("🟢 [TurnoRepository] Creando turno - estudianteId: $estudianteId, tipoTramiteId: $tipoTramiteId")
             println("🟢 [TurnoRepository] Observaciones: $observaciones")
@@ -130,36 +130,40 @@ class TurnoRepository {
             println("🟢 [TurnoRepository] Response code: ${response.code}")
             println("🟢 [TurnoRepository] Response body: ${response.body}")
 
-            if (response.code in 200..299) {
-                val jsonObject = JSONObject(response.body)
-                val success = jsonObject.optBoolean("success", false)
-                println("🟢 [TurnoRepository] Success flag: $success")
+            val jsonObject = try {
+                JSONObject(response.body)
+            } catch (e: Exception) {
+                null
+            }
 
-                if (success) {
+            if (response.code in 200..299) {
+                if (jsonObject?.optBoolean("success", false) == true) {
                     val dataObj = jsonObject.optJSONObject("data")
                     println("🟢 [TurnoRepository] Data object: $dataObj")
 
                     if (dataObj != null) {
                         val turno = parseTurnoFromJson(dataObj)
                         println("🟢 [TurnoRepository] Turno creado exitosamente: ${turno.id}")
-                        turno
-                    } else {
-                        println("🔴 [TurnoRepository] Data object es null")
-                        null
+                        return TurnoOperacionResult.Success(
+                            turno,
+                            jsonObject.optString("message", "Turno creado exitosamente.")
+                        )
                     }
-                } else {
-                    val message = jsonObject.optString("message", "Sin mensaje")
-                    println("🔴 [TurnoRepository] Success es false. Mensaje: $message")
-                    null
+                    println("🔴 [TurnoRepository] Data object es null")
+                    return TurnoOperacionResult.Error("Respuesta inválida del servidor.")
                 }
-            } else {
-                println("🔴 [TurnoRepository] Código de respuesta inválido: ${response.code}")
-                null
+                val message = jsonObject?.optString("message", "No se pudo crear el turno.")
+                    ?: "No se pudo crear el turno."
+                println("🔴 [TurnoRepository] Success es false. Mensaje: $message")
+                return TurnoOperacionResult.Error(message)
             }
+
+            println("🔴 [TurnoRepository] Código de respuesta inválido: ${response.code}")
+            TurnoOperacionResult.Error(response.body.extractMessage("No se pudo crear el turno."))
         } catch (e: Exception) {
             println("🔴 [TurnoRepository] Exception: ${e.message}")
             e.printStackTrace()
-            null
+            TurnoOperacionResult.Error("Error inesperado: " + (e.message ?: "intenta más tarde."))
         }
     }
 

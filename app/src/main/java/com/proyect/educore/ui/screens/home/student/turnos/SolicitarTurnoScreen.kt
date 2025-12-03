@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.proyect.educore.model.TipoTramite
 import com.proyect.educore.model.repository.TipoTramiteRepository
+import com.proyect.educore.model.repository.TurnoOperacionResult
 import com.proyect.educore.model.repository.TurnoRepository
 import com.proyect.educore.ui.components.ButtonVariant
 import com.proyect.educore.ui.components.EduCoreButton
@@ -171,7 +172,7 @@ fun SolicitarTurnoScreen(
                                         "Aprox. $tiempoEstimado minutos",
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.secondary
                                     )
                                 }
                             }
@@ -186,18 +187,17 @@ fun SolicitarTurnoScreen(
                                 isCreatingTurno = true
                                 scope.launch {
                                     try {
-                                        val turno = turnoRepository.crearTurno(
+                                        when (val result = turnoRepository.crearTurno(
                                             estudianteId = estudianteId,
                                             tipoTramiteId = selectedTramite!!.id
-                                        )
-
-                                        if (turno != null) {
-                                            lastTurnoId = turno.id
-                                            showSuccessDialog = true
-                                        } else {
-                                            notificationState.showError(
-                                                "No se pudo crear el turno. Verifica tu conexión."
-                                            )
+                                        )) {
+                                            is TurnoOperacionResult.Success -> {
+                                                lastTurnoId = result.turno.id
+                                                showSuccessDialog = true
+                                            }
+                                            is TurnoOperacionResult.Error -> {
+                                                notificationState.showError(result.message)
+                                            }
                                         }
                                     } catch (e: java.net.ConnectException) {
                                         notificationState.showError("No se puede conectar al servidor.")

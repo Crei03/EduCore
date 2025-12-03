@@ -26,14 +26,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.proyect.educore.model.Turno
 import com.proyect.educore.model.Usuario
+import com.proyect.educore.model.repository.TurnoPanelResult
+import com.proyect.educore.model.repository.TurnoRepository
 import com.proyect.educore.ui.components.RemoteIcon
 import com.proyect.educore.ui.components.RemoteIconSpec
 import com.proyect.educore.ui.components.cards.CardVariant
@@ -57,6 +65,12 @@ fun SecretaryHomeScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
+    val turnoRepository = remember { TurnoRepository() }
+
+    var pendientes by remember { mutableStateOf("--") }
+    var hoy by remember { mutableStateOf("--") }
+    var turnoEnServicio by remember { mutableStateOf<Turno?>(null) }
+    var isLoadingStats by remember { mutableStateOf(false) }
 
     // Items del menú para el drawer
     val menuItems = listOf(
@@ -87,6 +101,24 @@ fun SecretaryHomeScreen(
             }
         }
     ) {
+        LaunchedEffect(Unit) {
+            isLoadingStats = true
+            when (val result = turnoRepository.obtenerTurnosPanel()) {
+                is TurnoPanelResult.Success -> {
+                    val lista = result.turnos
+                    pendientes = lista.count { it.estado.equals("EN_COLA", ignoreCase = true) }.toString()
+                    hoy = lista.size.toString()
+                    turnoEnServicio = lista.firstOrNull { it.estado.equals("ATENDIENDO", ignoreCase = true) }
+                }
+                is TurnoPanelResult.Error -> {
+                    pendientes = "--"
+                    hoy = "--"
+                    turnoEnServicio = null
+                }
+            }
+            isLoadingStats = false
+        }
+
         Scaffold(
             modifier = modifier.fillMaxSize(),
             topBar = {
@@ -159,14 +191,14 @@ fun SecretaryHomeScreen(
                     EduCoreStatCard(
                         modifier = Modifier.weight(1f),
                         title = "Pendientes",
-                        value = "--",
+                        value = if (isLoadingStats) "..." else pendientes,
                         iconSpec = RemoteIconSpec.HourglassEmpty,
                         accentColor = colorScheme.tertiary
                     )
                     EduCoreStatCard(
                         modifier = Modifier.weight(1f),
                         title = "Hoy",
-                        value = "--",
+                        value = if (isLoadingStats) "..." else hoy,
                         iconSpec = RemoteIconSpec.CheckOutlined,
                         accentColor = colorScheme.secondary
                     )
@@ -205,10 +237,21 @@ fun SecretaryHomeScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "Sin turno activo",
+                                    text = when {
+                                        isLoadingStats -> "Actualizando..."
+                                        turnoEnServicio != null -> "${turnoEnServicio!!.codigoTurno} • ${nombreEstudiante(turnoEnServicio!!)}"
+                                        else -> "Sin turno activo"
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colorScheme.onSurfaceVariant
                                 )
+                                if (!turnoEnServicio?.tipoTramiteNombre.isNullOrBlank()) {
+                                    Text(
+                                        text = "Trámite: ${turnoEnServicio!!.tipoTramiteNombre}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = colorScheme.primary
+                                    )
+                                }
                             }
                         }
                     }
@@ -256,5 +299,15 @@ private fun SecretaryHomeScreenPreview() {
             onNavigateToQueue = {},
             onLogout = {}
         )
+    }
+}
+
+private fun nombreEstudiante(turno: Turno): String {
+    val nombre = turno.estudianteNombre.orEmpty().trim()
+    val apellido = turno.estudianteApellido.orEmpty().trim()
+    return when {
+        nombre.isNotEmpty() && apellido.isNotEmpty() -> "$nombre $apellido"
+        nombre.isNotEmpty() -> nombre
+        else -> "Estudiante #${turno.estudianteId}"
     }
 }

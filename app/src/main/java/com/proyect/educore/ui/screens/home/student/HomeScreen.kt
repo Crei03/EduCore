@@ -300,7 +300,12 @@ private fun EsperaTurnoCard(
     val progreso = if (total > 0) 1f - (restanteSeguro.toFloat() / total.toFloat()) else 0f
     val mensajeAlerta = progreso >= 0.8f
     val enAtencion = turno.estado.equals("ATENDIENDO", ignoreCase = true)
-    val progressColor = if (enAtencion) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+    val progressColor = when {
+        enAtencion -> MaterialTheme.colorScheme.secondary
+        progreso >= 0.75f -> MaterialTheme.colorScheme.secondary
+        progreso >= 0.35f -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.tertiary
+    }
     val colorScheme = MaterialTheme.colorScheme
 
     EduCoreCard(

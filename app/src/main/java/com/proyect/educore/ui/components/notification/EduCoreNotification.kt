@@ -164,22 +164,22 @@ private fun EduCoreNotificationItem(
         NotificationType.SUCCESS -> Triple(
             if (isDarkTheme) Success.copy(alpha = 0.9f) else Success,
             Color.White,
-            RemoteIconSpec.Home // Representando check/success
+            RemoteIconSpec.Check // Representando éxito
         )
         NotificationType.ERROR -> Triple(
             if (isDarkTheme) Error.copy(alpha = 0.9f) else Error,
             Color.White,
-            RemoteIconSpec.Delete // Representando error/x
+            RemoteIconSpec.Error // Representando error/x
         )
         NotificationType.WARNING -> Triple(
             if (isDarkTheme) Warning.copy(alpha = 0.9f) else Warning,
             if (isDarkTheme) Color.White else Color.Black,
-            RemoteIconSpec.Schedule // Representando warning/attention
+            RemoteIconSpec.Warning // Representando advertencia
         )
         NotificationType.INFO -> Triple(
             if (isDarkTheme) colorScheme.primaryContainer else colorScheme.primary,
             if (isDarkTheme) colorScheme.onPrimaryContainer else colorScheme.onPrimary,
-            RemoteIconSpec.School // Representando info
+            RemoteIconSpec.Info // Representando info
         )
     }
 

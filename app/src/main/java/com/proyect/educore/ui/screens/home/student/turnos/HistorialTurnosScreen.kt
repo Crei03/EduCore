@@ -261,8 +261,12 @@ private fun TurnoHistorialCard(turno: Turno) {
                 }
             }
 
-            // Observaciones si las hay
-            if (!turno.observaciones.isNullOrBlank() && !turno.observaciones.equals("null", ignoreCase = true)) {
+            // Observaciones si las hay (omitimos mensajes internos del panel)
+            val observacionLimpia = turno.observaciones?.trim().orEmpty()
+            val mostrarObservacion = observacionLimpia.isNotEmpty()
+                    && !observacionLimpia.equals("null", ignoreCase = true)
+                    && !observacionLimpia.equals("Marcado desde panel", ignoreCase = true)
+            if (mostrarObservacion) {
                 EduCoreCard(
                     variant = CardVariant.OUTLINED,
                     modifier = Modifier
@@ -280,7 +284,7 @@ private fun TurnoHistorialCard(turno: Turno) {
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            turno.observaciones,
+                            observacionLimpia,
                             style = MaterialTheme.typography.bodySmall,
                             color = colorScheme.onSurfaceVariant
                         )

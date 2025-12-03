@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -29,11 +30,14 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +77,7 @@ fun EduCoreDrawer(
     content: @Composable () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    var showLogoutConfirm by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -129,8 +134,29 @@ fun EduCoreDrawer(
 
                     // Botón de cerrar sesión
                     LogoutButton(
-                        onClick = onLogout,
+                        onClick = { showLogoutConfirm = true },
                         modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                }
+
+                if (showLogoutConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showLogoutConfirm = false },
+                        title = { Text("¿Cerrar sesión?") },
+                        text = { Text("Se cerrará tu sesión actual. Puedes volver a iniciar sesión luego.") },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showLogoutConfirm = false
+                                    onLogout()
+                                }
+                            ) { Text("Cerrar sesión") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showLogoutConfirm = false }) {
+                                Text("Cancelar")
+                            }
+                        }
                     )
                 }
             }
@@ -198,10 +224,12 @@ private fun DrawerItem(
     val colorScheme = MaterialTheme.colorScheme
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val isHovered by interactionSource.collectIsHoveredAsState()
 
     val backgroundColor by animateColorAsState(
         targetValue = when {
             selected -> colorScheme.primaryContainer
+            isHovered -> colorScheme.surfaceContainerHighest
             isPressed -> colorScheme.surfaceContainerHighest
             else -> Color.Transparent
         },
@@ -213,6 +241,21 @@ private fun DrawerItem(
         selected -> colorScheme.onPrimaryContainer
         else -> colorScheme.onSurfaceVariant
     }
+
+    val iconSize by animateDpAsState(
+        targetValue = if (selected || isHovered || isPressed) 26.dp else 24.dp,
+        animationSpec = tween(durationMillis = 150),
+        label = "iconSize"
+    )
+    val iconTint by animateColorAsState(
+        targetValue = when {
+            selected -> colorScheme.primary
+            isHovered -> colorScheme.primary
+            else -> contentColor
+        },
+        animationSpec = tween(durationMillis = 150),
+        label = "iconTint"
+    )
 
     Surface(
         modifier = modifier
@@ -235,8 +278,8 @@ private fun DrawerItem(
         ) {
             RemoteIcon(
                 iconSpec = item.icon,
-                size = 24.dp,
-                tint = if (selected) colorScheme.primary else contentColor
+                size = iconSize,
+                tint = iconTint
             )
 
             Text(
